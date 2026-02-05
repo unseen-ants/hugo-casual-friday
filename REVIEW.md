@@ -66,7 +66,16 @@ The theme has no search functionality. This structured data is misleading to sea
 
 The CSS file header reads "SOVEREIGN THEME" but the theme is called "Casual Friday". This suggests a rename occurred without updating the CSS comment block.
 
-### 5. Hardcoded `not_engineering` section (`layouts/index.html:245`)
+### 5. Hero banner file extension mismatch (FIXED)
+
+The example config (`exampleSite/hugo.toml:44`) references `/images/hero-banner.png` but the actual static file is `exampleSite/static/images/hero-banner.svg`. The same `.png` extension was used in the fallback path in `layouts/index.html:7`. This causes the hero banner to 404 on the example site, resulting in:
+
+- **Desktop**: The hero section shows the page background color instead of the dark banner image. Light-colored hero text (`#fafafa`) becomes invisible against the light page background.
+- **Mobile**: The header hero background image fails to load, though the dark gradient overlay partially masks the issue.
+
+**Fix applied:** Changed both references from `.png` to `.svg`.
+
+### 6. Hardcoded `not_engineering` section (`layouts/index.html:245`)
 
 ```go
 {{ $notEng := where .Site.RegularPages "Section" "not_engineering" }}
@@ -229,6 +238,7 @@ The theme is well-conceived with strong SEO, theming, and content organization f
 | Priority | Issue | Type |
 |----------|-------|------|
 | High | Card image links broken in list.html (`$.Permalink` bug) | Bug |
+| High | Hero banner `.png` vs `.svg` extension mismatch (FIXED) | Bug |
 | High | Hardcoded `not_engineering` section in index.html | Bug |
 | High | No skip-to-content link | Accessibility |
 | Medium | Duplicate author meta tags | Bug |
