@@ -1,0 +1,23 @@
+# Hugo build output
+public/
+resources/_gen/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Hugo lock file
+.hugo_build.lock
+
+# Node (if using npm for assets)
+node_modules/
+
+# Example site build output
+exampleSite/public/
+exampleSite/resources/

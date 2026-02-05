@@ -1,0 +1,418 @@
+{{ define "main" }}
+{{/* Apply posts-style layout to content sections (not tags/categories) */}}
+{{ $isContentSection := and (ne .Section "tags") (ne .Section "categories") }}
+
+{{/* Layout configuration - page-level overrides site-level */}}
+{{ $siteLayout := site.Params.listLayout | default "single-column" }}
+{{ $pageLayout := .Params.listLayout | default $siteLayout }}
+
+{{/* Timeline configuration - page-level overrides site-level */}}
+{{ $siteTimeline := site.Params.enableTimeline | default false }}
+{{ $pageTimeline := .Params.timeline }}
+{{ $enableTimeline := cond (isset .Params "timeline") $pageTimeline $siteTimeline }}
+
+{{/* Only apply timeline to content sections */}}
+{{ $useTimeline := and $isContentSection $enableTimeline }}
+
+{{/* Determine layout class */}}
+{{ $layoutClass := "" }}
+{{ if $useTimeline }}
+  {{ $layoutClass = "timeline-page" }}
+{{ else if eq $pageLayout "two-column" }}
+  {{ $layoutClass = "list-layout-two-column" }}
+{{ else }}
+  {{ $layoutClass = "list-layout-single" }}
+{{ end }}
+
+<section class="list-page{{ if $isContentSection }} list-page-posts{{ end }} {{ $layoutClass }}">
+  <header class="list-header">
+    {{/* Breadcrumb for nested tags */}}
+    {{ if eq .Section "tags" }}
+      {{ $tagSlug := .Data.Term }}
+      {{ if strings.Contains $tagSlug "/" }}
+        {{/* This is a child tag - show breadcrumb */}}
+        {{ $parts := split $tagSlug "/" }}
+        {{ $parentSlug := index $parts 0 }}
+        {{ $childSlug := index $parts 1 }}
+        {{ $parentTitle := $parentSlug | humanize | title }}
+        {{ $childTitle := $childSlug | humanize | title }}
+
+        {{/* Try to get parent tag page for proper title */}}
+        {{ with $.Site.GetPage (printf "/tags/%s" $parentSlug) }}
+          {{ $parentTitle = .Title }}
+        {{ end }}
+
+        <nav class="tag-breadcrumb" aria-label="Tag hierarchy">
+          <a href="{{ "tags/" | relURL }}" class="breadcrumb-link">Tags</a>
+          <span class="breadcrumb-sep">/</span>
+          <a href="{{ "tags/" | relURL }}{{ $parentSlug }}/" class="breadcrumb-link">{{ $parentTitle }}</a>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-current">{{ $childTitle }}</span>
+        </nav>
+      {{ else }}
+        {{/* This is a parent tag - simple breadcrumb */}}
+        <nav class="tag-breadcrumb" aria-label="Tag hierarchy">
+          <a href="{{ "tags/" | relURL }}" class="breadcrumb-link">Tags</a>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-current">{{ .Title }}</span>
+        </nav>
+      {{ end }}
+    {{ end }}
+
+    {{/* Page title - show just child name for nested tags */}}
+    {{ $pageTitle := .Title }}
+    {{ if eq .Section "tags" }}
+      {{ $tagSlug := .Data.Term }}
+      {{ if strings.Contains $tagSlug "/" }}
+        {{ $parts := split $tagSlug "/" }}
+        {{ $pageTitle = index $parts 1 | humanize | title }}
+      {{ end }}
+    {{ end }}
+    <h1 class="list-title">{{ $pageTitle }}</h1>
+
+    {{/* Show post count for tag pages */}}
+    {{ if eq .Section "tags" }}
+      {{ $postCount := len .Pages }}
+      {{/* Get tag slug - handle both taxonomy term pages and _index.md pages */}}
+      {{ $tagSlug := "" }}
+      {{ if .Data.Term }}
+        {{ $tagSlug = .Data.Term }}
+      {{ else }}
+        {{ $tagSlug = strings.TrimPrefix "/tags/" .RelPermalink }}
+        {{ $tagSlug = strings.TrimSuffix "/" $tagSlug }}
+      {{ end }}
+      {{/* For parent tags, calculate total including child tags */}}
+      {{ if and $tagSlug (not (strings.Contains $tagSlug "/")) }}
+        {{ $parentPrefix := printf "%s/" $tagSlug }}
+        {{ $allPostsForCount := .Pages }}
+        {{/* Find child tags using site taxonomies */}}
+        {{ range $childTagSlug, $childTagData := $.Site.Taxonomies.tags }}
+          {{ if strings.HasPrefix $childTagSlug $parentPrefix }}
+            {{ range $childTagData.Pages }}
+              {{ $allPostsForCount = $allPostsForCount | append . }}
+            {{ end }}
+          {{ end }}
+        {{ end }}
+        {{ $postCount = len ($allPostsForCount | uniq) }}
+      {{ end }}
+      <p class="list-description tag-post-count">{{ $postCount }} {{ if eq $postCount 1 }}post{{ else }}posts{{ end }}</p>
+
+      {{/* For child tags, show sibling tags (other children) */}}
+      {{ if strings.Contains $tagSlug "/" }}
+        {{ $parts := split $tagSlug "/" }}
+        {{ $parentSlug := index $parts 0 }}
+
+        {{/* Find sibling tags */}}
+        {{ $siblings := slice }}
+        {{ range $.Site.Taxonomies.tags }}
+          {{ $siblingSlug := .Page.Name }}
+          {{ if and (strings.HasPrefix $siblingSlug (printf "%s/" $parentSlug)) (ne $siblingSlug $tagSlug) }}
+            {{ $siblings = $siblings | append .Page }}
+          {{ end }}
+        {{ end }}
+
+        {{ if $siblings }}
+        <div class="tag-siblings">
+          <span class="tag-siblings-label">Also in {{ $parentSlug | humanize | title }}:</span>
+          <div class="tag-siblings-list">
+            {{ range $siblings }}
+            <a href="{{ .Permalink }}" class="tag-sibling-link">{{ .Name | humanize | title }}</a>
+            {{ end }}
+          </div>
+        </div>
+        {{ end }}
+      {{ else if $tagSlug }}
+        {{/* For parent tags, show children if any */}}
+        {{ $children := slice }}
+        {{ $parentPrefix := printf "%s/" $tagSlug }}
+        {{ range $childTagSlug, $childTagData := $.Site.Taxonomies.tags }}
+          {{ if strings.HasPrefix $childTagSlug $parentPrefix }}
+            {{ $children = $children | append $childTagData.Page }}
+          {{ end }}
+        {{ end }}
+
+        {{ if $children }}
+        <div class="tag-children-preview">
+          <span class="tag-children-label">Subtopics:</span>
+          <div class="tag-children-list">
+            {{ range $children }}
+            <a href="{{ .Permalink }}" class="child-pill">
+              {{ .Name | humanize | title }}
+              <span class="child-count">{{ len .Pages }}</span>
+            </a>
+            {{ end }}
+          </div>
+        </div>
+        {{ end }}
+      {{ end }}
+    {{ else }}
+      {{ with .Description }}
+      <p class="list-description">{{ . }}</p>
+      {{ end }}
+    {{ end }}
+
+    {{ with .Content }}
+    <div class="list-content prose">
+      {{ . }}
+    </div>
+    {{ end }}
+  </header>
+
+  {{ $pages := .Pages }}
+  {{ if .IsHome }}
+    {{ $pages = where .Site.RegularPages "Section" "posts" }}
+  {{ end }}
+
+  {{/* For parent tags, also include posts from child tags */}}
+  {{ if eq .Section "tags" }}
+    {{/* Get tag slug from URL path since .Data.Term may be empty for _index.md pages */}}
+    {{ $tagSlug := "" }}
+    {{ if .Data.Term }}
+      {{ $tagSlug = .Data.Term }}
+    {{ else }}
+      {{/* Extract from RelPermalink: /tags/devops/ -> devops */}}
+      {{ $tagSlug = strings.TrimPrefix "/tags/" .RelPermalink }}
+      {{ $tagSlug = strings.TrimSuffix "/" $tagSlug }}
+    {{ end }}
+    {{ if and $tagSlug (not (strings.Contains $tagSlug "/")) }}
+      {{/* This is a parent tag - collect posts from all child tags */}}
+      {{ $allPages := slice }}
+      {{/* Add direct pages from this parent tag */}}
+      {{ range .Pages }}
+        {{ $allPages = $allPages | append . }}
+      {{ end }}
+      {{/* Find child tags using site taxonomies */}}
+      {{ $parentPrefix := printf "%s/" $tagSlug }}
+      {{ range $childTagSlug, $childTagData := $.Site.Taxonomies.tags }}
+        {{ if strings.HasPrefix $childTagSlug $parentPrefix }}
+          {{ range $childTagData.Pages }}
+            {{ $allPages = $allPages | append . }}
+          {{ end }}
+        {{ end }}
+      {{ end }}
+      {{/* Remove duplicates and sort by date */}}
+      {{ $pages = $allPages | uniq }}
+      {{ $pages = sort $pages "Date" "desc" }}
+    {{ end }}
+  {{ end }}
+
+  {{/* Card image configuration */}}
+  {{ $showCardImages := site.Params.showCardImages | default false }}
+  {{ $cardImagePosition := site.Params.cardImagePosition | default "left" }}
+
+  {{ if gt (len $pages) 0 }}
+    {{/* Timeline layout */}}
+    {{ if $useTimeline }}
+      <div class="timeline-container">
+        {{ $groupedPages := $pages.GroupByDate "2006" }}
+        {{ range $index, $group := $groupedPages }}
+          {{/* Year header - first year uses timeline-year, others use year-separator */}}
+          {{ if eq $index 0 }}
+          <div class="timeline-year">
+            <span class="year-label">{{ .Key }}</span>
+          </div>
+          {{ else }}
+          <div class="year-separator">
+            <span class="year-label">{{ .Key }}</span>
+          </div>
+          {{ end }}
+
+          <div class="timeline-posts">
+            {{ range .Pages }}
+            <article class="timeline-post">
+              <div class="timeline-marker">
+                <span class="timeline-month">{{ .Date.Format "Jan" }}</span>
+                <div class="timeline-dot"></div>
+              </div>
+              <div class="timeline-connector"></div>
+              <div class="post-card{{ if and $showCardImages .Params.image }} post-card-with-image{{ end }}">
+                {{/* Image for cards with images */}}
+                {{ if and $showCardImages .Params.image }}
+                <div class="post-card-image">
+                  <a href="{{ .Permalink }}">
+                    <img src="{{ .Params.image }}" alt="{{ .Title }}" loading="lazy">
+                  </a>
+                </div>
+                {{ end }}
+
+                <div class="post-card-content">
+                  {{ with .Params.tags }}
+                  {{/* Context-aware tag display: show ALL matching subtopics on tag pages */}}
+                  {{ $matchingTags := slice }}
+                  {{ $currentTagSlug := "" }}
+                  {{ if eq $.Section "tags" }}
+                    {{ if $.Data.Term }}
+                      {{ $currentTagSlug = $.Data.Term }}
+                    {{ else }}
+                      {{ $currentTagSlug = strings.TrimPrefix "/tags/" $.RelPermalink }}
+                      {{ $currentTagSlug = strings.TrimSuffix "/" $currentTagSlug }}
+                    {{ end }}
+                    {{ if $currentTagSlug }}
+                      {{ range . }}
+                        {{ $tagSlug := . | urlize }}
+                        {{ if or (eq $tagSlug $currentTagSlug) (strings.HasPrefix $tagSlug (printf "%s/" $currentTagSlug)) }}
+                          {{ $matchingTags = $matchingTags | append . }}
+                        {{ end }}
+                      {{ end }}
+                    {{ end }}
+                  {{ end }}
+                  {{/* Fall back to first tag if no matches */}}
+                  {{ if eq (len $matchingTags) 0 }}
+                    {{ $matchingTags = $matchingTags | append (index . 0) }}
+                  {{ end }}
+                  <div class="post-categories">
+                    {{ range $matchingTags }}
+                      {{ $parts := split . "/" }}
+                      {{ $parentTag := index $parts 0 }}
+                      {{ if gt (len $parts) 1 }}
+                        {{ $childTag := index $parts 1 }}
+                        <a href="{{ "tags/" | relURL }}{{ . | urlize }}" class="category-tag">{{ $childTag | humanize | title }}</a>
+                      {{ else }}
+                        <a href="{{ "tags/" | relURL }}{{ $parentTag | urlize }}" class="category-tag">{{ $parentTag | humanize | title }}</a>
+                      {{ end }}
+                    {{ end }}
+                  </div>
+                  {{ end }}
+                  <h2 class="post-title">
+                    <a href="{{ .Permalink }}">{{ .Title }}</a>
+                  </h2>
+                  <p class="post-excerpt">{{ .Summary | plainify | truncate 140 }}</p>
+                  <div class="post-meta">
+                    {{ if gt .Date.Year 1 }}
+                    <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2 Jan 2006" }}</time>
+                    <span class="meta-sep">&middot;</span>
+                    {{ end }}
+                    <span class="reading-time">{{ math.Round (div (countwords .Content) 200.0) }} min read</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+            {{ end }}
+          </div>
+        {{ end }}
+      </div>
+    {{ else }}
+      {{/* Standard grid layout (single-column or two-column) */}}
+      <div class="posts-grid{{ if $showCardImages }} posts-grid-with-images{{ end }}">
+        {{ range $pages }}
+        <article class="post-card{{ if and $showCardImages .Params.image }} post-card-with-image post-card-image-{{ $cardImagePosition }}{{ end }}">
+          {{/* Image at top position */}}
+          {{ if and $showCardImages (eq $cardImagePosition "top") }}
+            {{ with .Params.image }}
+            <div class="post-card-image">
+              <a href="{{ $.Permalink }}">
+                <img src="{{ . }}" alt="{{ $.Title }}" loading="lazy">
+              </a>
+            </div>
+            {{ end }}
+          {{ end }}
+
+          {{/* Image at left position */}}
+          {{ if and $showCardImages (eq $cardImagePosition "left") }}
+            {{ with .Params.image }}
+            <div class="post-card-image">
+              <a href="{{ $.Permalink }}">
+                <img src="{{ . }}" alt="{{ $.Title }}" loading="lazy">
+              </a>
+            </div>
+            {{ end }}
+          {{ end }}
+
+          <div class="post-card-content">
+            {{ with .Params.tags }}
+            {{/* Context-aware tag display: show ALL matching subtopics on tag pages */}}
+            {{ $matchingTags := slice }}
+            {{ $currentTagSlug := "" }}
+            {{ if eq $.Section "tags" }}
+              {{ if $.Data.Term }}
+                {{ $currentTagSlug = $.Data.Term }}
+              {{ else }}
+                {{ $currentTagSlug = strings.TrimPrefix "/tags/" $.RelPermalink }}
+                {{ $currentTagSlug = strings.TrimSuffix "/" $currentTagSlug }}
+              {{ end }}
+              {{ if $currentTagSlug }}
+                {{ range . }}
+                  {{ $tagSlug := . | urlize }}
+                  {{ if or (eq $tagSlug $currentTagSlug) (strings.HasPrefix $tagSlug (printf "%s/" $currentTagSlug)) }}
+                    {{ $matchingTags = $matchingTags | append . }}
+                  {{ end }}
+                {{ end }}
+              {{ end }}
+            {{ end }}
+            {{/* Fall back to first tag if no matches */}}
+            {{ if eq (len $matchingTags) 0 }}
+              {{ $matchingTags = $matchingTags | append (index . 0) }}
+            {{ end }}
+            <div class="post-categories">
+              {{ range $matchingTags }}
+                {{ $parts := split . "/" }}
+                {{ $parentTag := index $parts 0 }}
+                {{ if gt (len $parts) 1 }}
+                  {{ $childTag := index $parts 1 }}
+                  <a href="{{ "tags/" | relURL }}{{ . | urlize }}" class="category-tag">{{ $childTag | humanize | title }}</a>
+                {{ else }}
+                  <a href="{{ "tags/" | relURL }}{{ $parentTag | urlize }}" class="category-tag">{{ $parentTag | humanize | title }}</a>
+                {{ end }}
+              {{ end }}
+            </div>
+            {{ end }}
+            <h2 class="post-title">
+              <a href="{{ .Permalink }}">{{ .Title }}</a>
+            </h2>
+            <p class="post-excerpt">{{ .Summary | plainify | truncate 140 }}</p>
+            <div class="post-meta">
+              {{ if gt .Date.Year 1 }}
+              <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2 Jan 2006" }}</time>
+              <span class="meta-sep">&middot;</span>
+              {{ end }}
+              <span class="reading-time">{{ math.Round (div (countwords .Content) 200.0) }} min read</span>
+            </div>
+          </div>
+
+          {{/* Image at right position */}}
+          {{ if and $showCardImages (eq $cardImagePosition "right") }}
+            {{ with .Params.image }}
+            <div class="post-card-image">
+              <a href="{{ $.Permalink }}">
+                <img src="{{ . }}" alt="{{ $.Title }}" loading="lazy">
+              </a>
+            </div>
+            {{ end }}
+          {{ end }}
+        </article>
+        {{ end }}
+      </div>
+    {{ end }}
+
+  {{/* Pagination */}}
+  {{ $pag := .Paginator }}
+  {{ if gt $pag.TotalPages 1 }}
+  <nav class="pagination">
+    {{ if $pag.HasPrev }}
+    <a href="{{ $pag.Prev.URL }}" class="pagination-link pagination-prev">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+      Previous
+    </a>
+    {{ end }}
+
+    <span class="pagination-info">
+      Page {{ $pag.PageNumber }} of {{ $pag.TotalPages }}
+    </span>
+
+    {{ if $pag.HasNext }}
+    <a href="{{ $pag.Next.URL }}" class="pagination-link pagination-next">
+      Next
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </a>
+    {{ end }}
+  </nav>
+  {{ end }}
+  {{ else }}
+  <p class="no-posts">No posts yet. Check back soon!</p>
+  {{ end }}
+</section>
+{{ end }}

@@ -1,0 +1,357 @@
+<script>
+// Theme toggle
+const themeToggle = document.getElementById('theme-toggle');
+const html = document.documentElement;
+
+themeToggle.addEventListener('click', () => {
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+});
+
+// Mobile menu toggle
+const menuToggle = document.getElementById('menu-toggle');
+const siteNav = document.querySelector('.site-nav');
+
+menuToggle.addEventListener('click', () => {
+  siteNav.classList.toggle('is-open');
+  menuToggle.setAttribute('aria-expanded', siteNav.classList.contains('is-open'));
+});
+
+// Close mobile menu on link click
+document.querySelectorAll('.nav-link').forEach(link => {
+  link.addEventListener('click', () => {
+    siteNav.classList.remove('is-open');
+  });
+});
+
+// Tags expand/collapse (mobile)
+const tagsExpandBtn = document.getElementById('tags-expand-btn');
+const tagsCloud = document.getElementById('tags-cloud');
+
+if (tagsExpandBtn && tagsCloud) {
+  tagsExpandBtn.addEventListener('click', () => {
+    const isExpanded = tagsExpandBtn.getAttribute('aria-expanded') === 'true';
+    tagsExpandBtn.setAttribute('aria-expanded', !isExpanded);
+    tagsCloud.classList.toggle('expanded');
+  });
+}
+
+// Tag accordion (for /tags/ page on mobile)
+document.querySelectorAll('.tag-accordion-toggle').forEach(toggle => {
+  toggle.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const item = toggle.closest('.tag-accordion-item');
+    const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+
+    // Toggle current item
+    toggle.setAttribute('aria-expanded', !isExpanded);
+    item.classList.toggle('expanded');
+  });
+});
+
+// =============================================================================
+// Audio Player - Listen to Articles
+// =============================================================================
+(function() {
+  const speedOptions = [0.75, 1, 1.25, 1.5, 2];
+
+  // Format seconds to MM:SS
+  function formatTime(seconds) {
+    if (isNaN(seconds) || seconds < 0) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  // Initialize all audio players on the page
+  document.querySelectorAll('.audio-player-wrapper').forEach(wrapper => {
+    const cta = wrapper.querySelector('.listen-cta');
+    const player = wrapper.querySelector('.audio-player-inline');
+    const audio = wrapper.querySelector('audio');
+
+    if (!cta || !player || !audio) return;
+
+    const playBtn = player.querySelector('.player-play-btn');
+    const iconPlay = playBtn.querySelector('.icon-play');
+    const iconPause = playBtn.querySelector('.icon-pause');
+    const timeCurrent = player.querySelector('.player-time-current');
+    const timeTotal = player.querySelector('.player-time-total');
+    const seekBar = player.querySelector('.player-seek-bar');
+    const seekProgress = player.querySelector('.player-seek-progress');
+    const seekHandle = player.querySelector('.player-seek-handle');
+    const speedBtn = player.querySelector('.speed-btn');
+
+    let currentSpeedIndex = 1; // Default to 1x
+
+    // CTA click - show player and start playback
+    cta.addEventListener('click', () => {
+      cta.style.display = 'none';
+      player.classList.add('is-active');
+      audio.play().catch(() => {
+        // Autoplay may be blocked, user can click play button
+      });
+    });
+
+    // Play/Pause toggle
+    playBtn.addEventListener('click', () => {
+      if (audio.paused) {
+        audio.play();
+      } else {
+        audio.pause();
+      }
+    });
+
+    // Update play/pause icons
+    audio.addEventListener('play', () => {
+      iconPlay.style.display = 'none';
+      iconPause.style.display = 'block';
+      playBtn.setAttribute('aria-label', 'Pause');
+    });
+
+    audio.addEventListener('pause', () => {
+      iconPlay.style.display = 'block';
+      iconPause.style.display = 'none';
+      playBtn.setAttribute('aria-label', 'Play');
+    });
+
+    // Update progress bar on time update
+    audio.addEventListener('timeupdate', () => {
+      if (audio.duration) {
+        const progress = (audio.currentTime / audio.duration) * 100;
+        seekProgress.style.width = `${progress}%`;
+        seekHandle.style.left = `${progress}%`;
+        timeCurrent.textContent = formatTime(audio.currentTime);
+        seekBar.setAttribute('aria-valuenow', Math.floor(audio.currentTime));
+      }
+    });
+
+    // Update total time when metadata loads
+    audio.addEventListener('loadedmetadata', () => {
+      timeTotal.textContent = formatTime(audio.duration);
+      seekBar.setAttribute('aria-valuemax', Math.floor(audio.duration));
+    });
+
+    // Seek on click/drag
+    function seekToPosition(e) {
+      const rect = seekBar.getBoundingClientRect();
+      const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      audio.currentTime = percent * audio.duration;
+    }
+
+    seekBar.addEventListener('click', seekToPosition);
+
+    // Drag to seek
+    let isDragging = false;
+    seekBar.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      seekToPosition(e);
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        seekToPosition(e);
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    // Touch support for seek
+    seekBar.addEventListener('touchstart', (e) => {
+      isDragging = true;
+      const touch = e.touches[0];
+      seekToPosition({ clientX: touch.clientX });
+    });
+
+    seekBar.addEventListener('touchmove', (e) => {
+      if (isDragging) {
+        const touch = e.touches[0];
+        seekToPosition({ clientX: touch.clientX });
+      }
+    });
+
+    seekBar.addEventListener('touchend', () => {
+      isDragging = false;
+    });
+
+    // Keyboard support for seek bar
+    seekBar.addEventListener('keydown', (e) => {
+      const step = audio.duration * 0.05; // 5% of duration
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+        audio.currentTime = Math.min(audio.duration, audio.currentTime + step);
+        e.preventDefault();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+        audio.currentTime = Math.max(0, audio.currentTime - step);
+        e.preventDefault();
+      }
+    });
+
+    // Speed control
+    speedBtn.addEventListener('click', () => {
+      currentSpeedIndex = (currentSpeedIndex + 1) % speedOptions.length;
+      const newSpeed = speedOptions[currentSpeedIndex];
+      audio.playbackRate = newSpeed;
+      speedBtn.textContent = newSpeed === 1 ? '1x' : `${newSpeed}x`;
+    });
+
+    // Reset on ended
+    audio.addEventListener('ended', () => {
+      seekProgress.style.width = '0%';
+      seekHandle.style.left = '0%';
+      timeCurrent.textContent = '0:00';
+    });
+  });
+})();
+
+// =============================================================================
+// Code Copy Button
+// =============================================================================
+(function() {
+  // Add copy buttons to all code blocks
+  document.querySelectorAll('pre > code').forEach(codeBlock => {
+    const pre = codeBlock.parentElement;
+
+    // Create copy button
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'code-copy-btn';
+    copyBtn.setAttribute('aria-label', 'Copy code to clipboard');
+    copyBtn.innerHTML = `
+      <svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+      <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    `;
+
+    // Wrap pre in a container for positioning
+    const wrapper = document.createElement('div');
+    wrapper.className = 'code-block-wrapper';
+    pre.parentNode.insertBefore(wrapper, pre);
+    wrapper.appendChild(pre);
+    wrapper.appendChild(copyBtn);
+
+    // Copy functionality
+    copyBtn.addEventListener('click', async () => {
+      const code = codeBlock.textContent;
+
+      try {
+        await navigator.clipboard.writeText(code);
+
+        // Show success state
+        const iconCopy = copyBtn.querySelector('.icon-copy');
+        const iconCheck = copyBtn.querySelector('.icon-check');
+        iconCopy.style.display = 'none';
+        iconCheck.style.display = 'block';
+        copyBtn.classList.add('copied');
+
+        // Reset after 2 seconds
+        setTimeout(() => {
+          iconCopy.style.display = 'block';
+          iconCheck.style.display = 'none';
+          copyBtn.classList.remove('copied');
+        }, 2000);
+      } catch (err) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = code;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          copyBtn.classList.add('copied');
+          setTimeout(() => copyBtn.classList.remove('copied'), 2000);
+        } catch (e) {
+          console.error('Copy failed:', e);
+        }
+        document.body.removeChild(textArea);
+      }
+    });
+  });
+})();
+
+// =============================================================================
+// TOC Scroll Spy - Highlight active section
+// =============================================================================
+(function() {
+  const tocSidebar = document.querySelector('.article-toc-sidebar');
+  if (!tocSidebar) return;
+
+  const tocLinks = tocSidebar.querySelectorAll('.toc-nav a');
+  if (!tocLinks.length) return;
+
+  // Get all heading IDs from TOC links
+  const headingIds = Array.from(tocLinks).map(link => {
+    const href = link.getAttribute('href');
+    return href ? href.slice(1) : null;
+  }).filter(Boolean);
+
+  // Get corresponding headings from the page
+  const headings = headingIds
+    .map(id => document.getElementById(id))
+    .filter(Boolean);
+
+  if (!headings.length) return;
+
+  // Throttle function for scroll performance
+  function throttle(fn, wait) {
+    let lastTime = 0;
+    return function(...args) {
+      const now = Date.now();
+      if (now - lastTime >= wait) {
+        lastTime = now;
+        fn.apply(this, args);
+      }
+    };
+  }
+
+  // Find active section based on scroll position
+  function updateActiveSection() {
+    const scrollY = window.scrollY;
+    const offset = 100; // Offset from top to trigger active state
+
+    let activeId = null;
+
+    // Find the heading that's currently in view
+    for (let i = headings.length - 1; i >= 0; i--) {
+      const heading = headings[i];
+      const rect = heading.getBoundingClientRect();
+      const top = rect.top + scrollY;
+
+      if (scrollY >= top - offset) {
+        activeId = heading.id;
+        break;
+      }
+    }
+
+    // If no heading found (at top of page), use first one
+    if (!activeId && headings.length > 0) {
+      activeId = headings[0].id;
+    }
+
+    // Update active class on TOC links
+    tocLinks.forEach(link => {
+      const href = link.getAttribute('href');
+      if (href === `#${activeId}`) {
+        link.classList.add('active');
+      } else {
+        link.classList.remove('active');
+      }
+    });
+  }
+
+  // Listen for scroll events (throttled)
+  window.addEventListener('scroll', throttle(updateActiveSection, 100), { passive: true });
+
+  // Initial update
+  updateActiveSection();
+})();
+</script>

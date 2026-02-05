@@ -1,0 +1,130 @@
+{{ define "main" }}
+{{/* Determine if TOC should be shown */}}
+{{ $showToc := .Params.toc | default .Site.Params.toc | default false }}
+{{ $hasToc := and $showToc .TableOfContents }}
+
+{{/* Inline styles for TOC layout - ensures article expands to fit TOC sidebar */}}
+{{ if $hasToc }}
+<style>
+  @media (min-width: 1024px) {
+    .article.has-toc {
+      max-width: 1300px;
+      padding-left: 220px;
+    }
+    .article.has-toc .article-header,
+    .article.has-toc .article-hero,
+    .article.has-toc .article-footer {
+      max-width: 820px;
+      margin-left: 0;
+      margin-right: auto;
+    }
+    .article.has-toc .article-body.with-toc {
+      grid-template-columns: minmax(0, 820px) 220px;
+      justify-content: start;
+      gap: 60px;
+      margin-left: 0;
+    }
+  }
+</style>
+{{ end }}
+
+<article class="article{{ if $hasToc }} has-toc{{ end }}">
+  <header class="article-header">
+    {{ with .Params.tags }}
+    {{ $firstTag := index . 0 }}
+    {{ $parts := split $firstTag "/" }}
+    {{ $parentTag := index $parts 0 }}
+    <div class="article-category">
+      <a href="{{ "tags/" | relURL }}{{ $parentTag | urlize }}" class="category-tag">{{ $parentTag | humanize | title }}</a>
+    </div>
+    {{ end }}
+
+    <h1 class="article-title">{{ .Title }}</h1>
+
+    {{ with .Params.summary }}
+    <p class="article-subtitle">{{ . }}</p>
+    {{ end }}
+
+    <div class="article-meta">
+      {{ if gt $.Date.Year 1 }}
+      <time datetime="{{ $.Date.Format "2006-01-02" }}">{{ $.Date.Format "2 Jan 2006" }}</time>
+      <span class="meta-sep">&middot;</span>
+      {{ end }}
+      <span class="reading-time">{{ math.Round (div (countwords .Content) 200.0) }} min read</span>
+    </div>
+
+    {{/* Audio Player - Listen to Articles */}}
+    {{ partial "audio-player.html" . }}
+  </header>
+
+  {{ with .Params.image }}
+  <figure class="article-hero">
+    <img src="{{ . }}" alt="{{ $.Title }}" loading="lazy">
+    {{ with $.Params.imageCaption }}
+    <figcaption>{{ . }}</figcaption>
+    {{ end }}
+  </figure>
+  {{ end }}
+
+  {{/* Article body wrapper - enables grid layout when TOC is present */}}
+  <div class="article-body{{ if $hasToc }} with-toc{{ end }}">
+
+    {{/* Mobile TOC - shown only on smaller screens */}}
+    {{ if $hasToc }}
+    <aside class="article-toc-mobile">
+      <details class="toc-container">
+        <summary class="toc-title">
+          <span>Table of Contents</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </summary>
+        <nav class="toc-nav" aria-label="Table of contents">
+          {{ .TableOfContents }}
+        </nav>
+      </details>
+    </aside>
+    {{ end }}
+
+    <div class="article-content prose">
+      {{ .Content }}
+    </div>
+
+    {{/* Desktop TOC sidebar - floating on the right */}}
+    {{ if $hasToc }}
+    <aside class="article-toc-sidebar">
+      <div class="toc-sticky">
+        <div class="toc-label">On this page</div>
+        <nav class="toc-nav" aria-label="Table of contents">
+          {{ .TableOfContents }}
+        </nav>
+      </div>
+    </aside>
+    {{ end }}
+  </div>
+
+  <footer class="article-footer">
+    {{ with .Params.tags }}
+    <div class="article-tags">
+      <span class="tags-label">Tagged:</span>
+      {{ range . }}
+      <a href="{{ "tags/" | relURL }}{{ . | urlize }}" class="tag">#{{ . }}</a>
+      {{ end }}
+    </div>
+    {{ end }}
+
+    <nav class="post-nav">
+      {{ with .PrevInSection }}
+      <a href="{{ .Permalink }}" class="post-nav-link post-nav-prev">
+        <span class="post-nav-label">Previous</span>
+        <span class="post-nav-title">{{ .Title }}</span>
+      </a>
+      {{ end }}
+      {{ with .NextInSection }}
+      <a href="{{ .Permalink }}" class="post-nav-link post-nav-next">
+        <span class="post-nav-label">Next</span>
+        <span class="post-nav-title">{{ .Title }}</span>
+      </a>
+      {{ end }}
+    </nav>
+  </footer>
+</article>
+{{ end }}

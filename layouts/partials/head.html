@@ -1,0 +1,359 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+{{/* ==========================================================================
+    SEO Meta Tags
+    ========================================================================== */}}
+
+{{/* Basic Meta */}}
+<title>{{ if .IsHome }}{{ .Site.Title }}{{ with .Site.Params.tagline }} — {{ . }}{{ end }}{{ else }}{{ .Title }} — {{ .Site.Title }}{{ end }}</title>
+<meta name="description" content="{{ with .Description }}{{ . }}{{ else }}{{ with .Summary }}{{ . | plainify | truncate 160 }}{{ else }}{{ .Site.Params.description }}{{ end }}{{ end }}">
+
+{{/* Author */}}
+{{ with .Site.Params.author }}<meta name="author" content="{{ . }}">{{ end }}
+{{ with .Params.author }}<meta name="author" content="{{ . }}">{{ end }}
+
+{{/* Keywords */}}
+{{ if .Params.tags }}
+<meta name="keywords" content="{{ delimit .Params.tags ", " }}">
+{{ else if .Site.Params.keywords }}
+<meta name="keywords" content="{{ if reflect.IsSlice .Site.Params.keywords }}{{ delimit .Site.Params.keywords ", " }}{{ else }}{{ .Site.Params.keywords }}{{ end }}">
+{{ end }}
+
+{{/* Robots */}}
+{{ if or .Params.noindex .Site.Params.noindex }}
+<meta name="robots" content="noindex, nofollow">
+{{ else }}
+<meta name="robots" content="index, follow">
+<meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+{{ end }}
+
+{{/* Canonical URL */}}
+<link rel="canonical" href="{{ .Permalink }}">
+
+{{/* Language */}}
+<meta property="og:locale" content="{{ .Site.LanguageCode | default "en_GB" | replaceRE "-" "_" }}">
+{{ range .Site.Languages }}
+{{ if ne .Lang $.Site.Language.Lang }}
+<link rel="alternate" hreflang="{{ .Lang }}" href="{{ $.Permalink | replaceRE $.Site.BaseURL .BaseURL }}">
+{{ end }}
+{{ end }}
+
+{{/* ==========================================================================
+    Open Graph (Facebook, LinkedIn, etc.)
+    ========================================================================== */}}
+<meta property="og:site_name" content="{{ .Site.Title }}">
+<meta property="og:title" content="{{ .Title }}">
+<meta property="og:description" content="{{ with .Description }}{{ . }}{{ else }}{{ with .Summary }}{{ . | plainify | truncate 200 }}{{ else }}{{ .Site.Params.description }}{{ end }}{{ end }}">
+<meta property="og:url" content="{{ .Permalink }}">
+<meta property="og:type" content="{{ if .IsPage }}article{{ else }}website{{ end }}">
+
+{{/* Open Graph Image */}}
+{{ $ogImage := "" }}
+{{ with .Params.image }}
+  {{ $ogImage = . }}
+{{ else }}
+  {{ with .Params.cover }}
+    {{ $ogImage = . }}
+  {{ else }}
+    {{ with .Site.Params.ogImage }}
+      {{ $ogImage = . }}
+    {{ else }}
+      {{ with .Site.Params.defaultImage }}
+        {{ $ogImage = . }}
+      {{ end }}
+    {{ end }}
+  {{ end }}
+{{ end }}
+{{ with $ogImage }}
+  {{ if hasPrefix . "http" }}
+<meta property="og:image" content="{{ . }}">
+  {{ else }}
+<meta property="og:image" content="{{ . | absURL }}">
+  {{ end }}
+<meta property="og:image:alt" content="{{ $.Title }}">
+{{ end }}
+
+{{/* Article-specific Open Graph */}}
+{{ if .IsPage }}
+{{ if not .Date.IsZero }}
+<meta property="article:published_time" content="{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}">
+{{ end }}
+{{ if not .Lastmod.IsZero }}
+<meta property="article:modified_time" content="{{ .Lastmod.Format "2006-01-02T15:04:05Z07:00" }}">
+{{ end }}
+{{ with .Site.Params.author }}
+<meta property="article:author" content="{{ . }}">
+{{ end }}
+{{ with .Params.author }}
+<meta property="article:author" content="{{ . }}">
+{{ end }}
+{{ with .Params.tags }}
+{{ $firstTag := index . 0 }}
+{{ $parts := split $firstTag "/" }}
+{{ $parentTag := index $parts 0 }}
+<meta property="article:section" content="{{ $parentTag | humanize | title }}">
+{{ end }}
+{{ range .Params.tags }}
+<meta property="article:tag" content="{{ . }}">
+{{ end }}
+{{ end }}
+
+{{/* ==========================================================================
+    JSON-LD Structured Data
+    ========================================================================== */}}
+{{ if .IsHome }}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "{{ .Site.Title }}",
+  "url": "{{ .Site.BaseURL }}",
+  "description": "{{ .Site.Params.description }}",
+  {{ with .Site.Params.author }}"author": {
+    "@type": "Person",
+    "name": "{{ . }}"
+  },{{ end }}
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "{{ .Site.BaseURL }}search?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+{{ else if .IsPage }}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "{{ .Title }}",
+  "description": "{{ with .Description }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 200 }}{{ end }}",
+  "url": "{{ .Permalink }}",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "{{ .Permalink }}"
+  },
+  {{ if not .Date.IsZero }}"datePublished": "{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}",{{ end }}
+  {{ if not .Lastmod.IsZero }}"dateModified": "{{ .Lastmod.Format "2006-01-02T15:04:05Z07:00" }}",{{ end }}
+  {{ with $ogImage }}"image": "{{ if hasPrefix . "http" }}{{ . }}{{ else }}{{ . | absURL }}{{ end }}",{{ end }}
+  "author": {
+    "@type": "Person",
+    "name": "{{ with .Params.author }}{{ . }}{{ else }}{{ with .Site.Params.author }}{{ . }}{{ else }}{{ .Site.Title }}{{ end }}{{ end }}"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "{{ .Site.Title }}",
+    "url": "{{ .Site.BaseURL }}"
+  },
+  "wordCount": {{ .WordCount }},
+  "timeRequired": "PT{{ .ReadingTime }}M"{{ if .Params.tags }},
+  "keywords": "{{ delimit .Params.tags ", " }}"{{ end }}
+}
+</script>
+{{ else if eq .Kind "taxonomy" }}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "{{ .Title }}",
+  "url": "{{ .Permalink }}",
+  "description": "{{ with .Description }}{{ . }}{{ else }}All posts tagged with {{ .Title }}{{ end }}"
+}
+</script>
+{{ end }}
+
+{{/* ==========================================================================
+    Breadcrumb Structured Data
+    ========================================================================== */}}
+{{ if and (not .IsHome) (gt (len .Ancestors) 0) }}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "{{ .Site.BaseURL }}"
+    }{{ if .Parent }},
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "{{ .Parent.Title }}",
+      "item": "{{ .Parent.Permalink }}"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "{{ .Title }}",
+      "item": "{{ .Permalink }}"
+    }{{ else }},
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "{{ .Title }}",
+      "item": "{{ .Permalink }}"
+    }{{ end }}
+  ]
+}
+</script>
+{{ end }}
+
+{{/* ==========================================================================
+    Fonts & Styles
+    ========================================================================== */}}
+
+<!-- Preconnect to Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<!-- Fonts: Playfair Display for headings, Source Serif for body -->
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400;1,8..60,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Theme CSS -->
+{{- $styles := resources.Get "css/main.css" | resources.Minify | resources.Fingerprint }}
+<link rel="stylesheet" href="{{ $styles.RelPermalink }}" integrity="{{ $styles.Data.Integrity }}">
+
+<!-- Configurable Theme Colors (from hugo.toml) -->
+<style>
+  :root {
+    {{/* Accent Color Configuration */}}
+    {{ $accentColor := site.Params.accentColor | default "cerulean" }}
+    {{ $accent := "#0891b2" }}
+    {{ $accentHover := "#0e7490" }}
+    {{ if eq $accentColor "cerulean" }}
+      {{ $accent = "#0891b2" }}
+      {{ $accentHover = "#0e7490" }}
+    {{ else if eq $accentColor "crimson" }}
+      {{ $accent = "#DC2626" }}
+      {{ $accentHover = "#B91C1C" }}
+    {{ else if eq $accentColor "purple" }}
+      {{ $accent = "#7C3AED" }}
+      {{ $accentHover = "#6D28D9" }}
+    {{ else if eq $accentColor "teal" }}
+      {{ $accent = "#0D9488" }}
+      {{ $accentHover = "#0F766E" }}
+    {{ else if eq $accentColor "amber" }}
+      {{ $accent = "#D97706" }}
+      {{ $accentHover = "#B45309" }}
+    {{ else if hasPrefix $accentColor "#" }}
+      {{ $accent = $accentColor }}
+      {{ $accentHover = $accentColor }}
+    {{ end }}
+    --accent: {{ $accent }};
+    --accent-hover: {{ $accentHover }};
+    --accent-subtle: {{ $accent }}1a;
+  }
+
+  {{/* Background Scheme Configuration - Always output to override CSS defaults */}}
+  {{ $bgScheme := site.Params.backgroundScheme | default "warm" }}
+
+  /* Background scheme: {{ $bgScheme }} */
+  [data-theme="light"] {
+    {{ if eq $bgScheme "cool" }}
+    /* Cool background scheme - subtle blue-gray tint */
+    --bg-primary: #f5f7fa !important;
+    --bg-secondary: #fafbfc !important;
+    --bg-tertiary: #eef1f5 !important;
+    --border-color: #dde3eb !important;
+    --border-subtle: #eef1f5 !important;
+    {{ else if eq $bgScheme "neutral" }}
+    /* Neutral background scheme - pure gray tones */
+    --bg-primary: #f5f5f5 !important;
+    --bg-secondary: #fafafa !important;
+    --bg-tertiary: #eeeeee !important;
+    --border-color: #e0e0e0 !important;
+    --border-subtle: #eeeeee !important;
+    {{ else }}
+    /* Warm background scheme (default) - subtle cream/beige tint */
+    --bg-primary: #f7f6f3 !important;
+    --bg-secondary: #fdfcfa !important;
+    --bg-tertiary: #efeee9 !important;
+    --border-color: #e2e1db !important;
+    --border-subtle: #efeee9 !important;
+    {{ end }}
+  }
+</style>
+
+{{/* ==========================================================================
+    RSS & Feeds
+    ========================================================================== */}}
+
+<!-- RSS -->
+{{ with .OutputFormats.Get "rss" -}}
+  {{ printf `<link rel="%s" type="%s" href="%s" title="%s" />` .Rel .MediaType.Type .Permalink $.Site.Title | safeHTML }}
+{{ end -}}
+
+{{/* ==========================================================================
+    Favicon & App Icons
+    ========================================================================== */}}
+
+<!-- Favicon -->
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+{{ with .Site.Params.favicon }}
+<link rel="icon" type="image/x-icon" href="{{ . }}">
+{{ end }}
+{{ with .Site.Params.appleTouchIcon }}
+<link rel="apple-touch-icon" href="{{ . }}">
+{{ end }}
+
+{{/* ==========================================================================
+    Theme Color for Mobile Browsers
+    ========================================================================== */}}
+
+{{ $bgScheme := site.Params.backgroundScheme | default "warm" }}
+{{ $lightBg := "#f7f6f3" }}
+{{ if eq $bgScheme "cool" }}{{ $lightBg = "#f5f7fa" }}{{ else if eq $bgScheme "neutral" }}{{ $lightBg = "#f5f5f5" }}{{ end }}
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="{{ $lightBg }}" media="(prefers-color-scheme: light)">
+
+{{/* ==========================================================================
+    Preload Critical Resources
+    ========================================================================== */}}
+
+{{ if .IsHome }}
+{{ with .Site.Params.heroBanner }}
+<link rel="preload" as="image" href="{{ . }}">
+{{ end }}
+{{ end }}
+
+{{/* ==========================================================================
+    Theme Detection Script (prevents flash)
+    ========================================================================== */}}
+
+<script>
+  (function() {
+    const stored = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = stored || (prefersDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
+
+{{/* ==========================================================================
+    Analytics
+    ========================================================================== */}}
+
+{{/* Analytics - GoatCounter */}}
+{{ with .Site.Params.analytics.goatcounter }}
+{{ if not hugo.IsServer }}
+<script data-goatcounter="https://{{ . }}.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+{{ end }}
+{{ end }}
+
+{{/* Analytics - Google Analytics (GA4) */}}
+{{ with .Site.Params.analytics.google }}
+{{ if not hugo.IsServer }}
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ . }}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '{{ . }}');
+</script>
+{{ end }}
+{{ end }}
+
+{{/* Custom head content injection point */}}
+{{ partial "head-end.html" . }}

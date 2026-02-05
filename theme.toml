@@ -1,0 +1,15 @@
+# Casual Friday - A Hugo Theme
+# https://github.com/unseen-ants/hugo-casual-friday
+
+name = "Casual Friday"
+license = "MIT"
+licenselink = "https://github.com/unseen-ants/hugo-casual-friday/blob/main/LICENSE"
+description = "A warm, inviting Hugo theme with elegant serif typography, dark mode, and thoughtful details for personal blogs and portfolios."
+homepage = "https://github.com/unseen-ants/hugo-casual-friday"
+tags = ["blog", "portfolio", "personal", "responsive", "dark mode", "minimal", "serif", "audio"]
+features = ["dark mode", "responsive", "audio player", "hierarchical tags", "tag clouds", "featured posts", "configurable colors", "timeline layout"]
+min_version = "0.112.0"
+
+[author]
+  name = "Avijit Ajay"
+  homepage = "https://avijit.space"

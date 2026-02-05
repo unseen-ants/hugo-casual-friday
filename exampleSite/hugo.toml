@@ -1,0 +1,157 @@
+# =============================================================================
+# Casual Friday Theme - Example Configuration
+# =============================================================================
+# This is a complete example hugo.toml showing all available theme options.
+# Copy this file to your site root and customise as needed.
+# =============================================================================
+
+baseURL = "https://example.com/"
+title = "My Site"
+theme = "casual-friday"
+languageCode = "en-gb"
+enableRobotsTXT = true
+
+[pagination]
+  pagerSize = 10
+
+# =============================================================================
+# Theme Parameters
+# =============================================================================
+[params]
+  description = "Your site description for SEO and social sharing"
+
+  # ---------------------------------------------------------------------------
+  # SEO Settings
+  # ---------------------------------------------------------------------------
+  author = "Your Name"
+  keywords = ["blog", "portfolio", "personal"]
+
+  # Optional: tagline appended to homepage title
+  # tagline = "Your Site Tagline"
+
+  # Default image for social sharing (used when posts don't have an image)
+  # ogImage = "/images/og-default.png"
+
+  # Optional: custom favicon paths
+  # favicon = "/favicon.ico"
+  # appleTouchIcon = "/apple-touch-icon.png"
+
+  # ---------------------------------------------------------------------------
+  # Hero Section (Homepage)
+  # ---------------------------------------------------------------------------
+  heroTitle = "Your Name"
+  heroSubtitle = "Your tagline or short bio.<br>HTML is supported here."
+  heroBanner = "/images/hero-banner.png"
+
+  # Hero background position for mobile (adjusts which part of image is visible)
+  # Format: "X% Y%" - e.g., "center center", "60% center", "left top"
+  heroMobilePosition = "center center"
+
+  # ---------------------------------------------------------------------------
+  # Content Display
+  # ---------------------------------------------------------------------------
+  # Featured tags shown in mobile tag bar (use tag slugs)
+  featuredTags = ["blog", "projects", "tutorials"]
+
+  # Number of latest posts to show on homepage
+  latestPostsDesktop = 8   # Desktop view
+  latestPostsMobile = 3    # Mobile view
+
+  # ---------------------------------------------------------------------------
+  # Theme Customisation
+  # ---------------------------------------------------------------------------
+  # Accent colour - used for links, buttons, and highlights
+  # Presets: cerulean (default), crimson, purple, teal, amber
+  # Or use a custom hex colour: "#FF5733"
+  accentColor = "cerulean"
+
+  # Background colour scheme (light mode only)
+  # Options: warm (cream/beige tint), cool (blue-gray tint), neutral (pure gray)
+  backgroundScheme = "cool"
+
+# ---------------------------------------------------------------------------
+# Hero Action Buttons
+# ---------------------------------------------------------------------------
+# Add up to 2-3 buttons below the hero tagline
+[[params.heroLinks]]
+  text = "Read Blog"
+  url = "/posts/"
+[[params.heroLinks]]
+  text = "About Me"
+  url = "/about/"
+
+# ---------------------------------------------------------------------------
+# Social Links (shown in footer)
+# ---------------------------------------------------------------------------
+[params.social]
+  linkedin = "https://linkedin.com/in/yourprofile"
+  github = "https://github.com/yourusername"
+  twitter = "https://twitter.com/yourhandle"
+
+# ---------------------------------------------------------------------------
+# Audio Player (Optional)
+# ---------------------------------------------------------------------------
+# Enable "Listen to Articles" feature with text-to-speech audio
+[params.audio]
+  # Base URL for audio files
+  # Local:         "/audio"
+  # CDN:           "https://cdn.yoursite.com/audio"
+  # Amazon S3:     "https://your-bucket.s3.amazonaws.com/audio"
+  # Azure Blob:    "https://youraccount.blob.core.windows.net/audio"
+  # Cloudflare R2: "https://your-bucket.r2.cloudflarestorage.com/audio"
+  baseURL = "/audio"
+
+# ---------------------------------------------------------------------------
+# Analytics (Optional)
+# ---------------------------------------------------------------------------
+# Analytics only loads in production (not during `hugo server`)
+[params.analytics]
+  # GoatCounter - privacy-friendly analytics
+  # Sign up at https://goatcounter.com and enter your site code
+  # goatcounter = "your-site-code"
+
+  # Google Analytics (GA4)
+  # Enter your measurement ID (starts with G-)
+  # google = "G-XXXXXXXXXX"
+
+# =============================================================================
+# Navigation Menu
+# =============================================================================
+[menu]
+  [[menu.main]]
+    name = "Blog"
+    url = "/posts/"
+    weight = 1
+  [[menu.main]]
+    name = "About"
+    url = "/about/"
+    weight = 2
+  [[menu.main]]
+    name = "Contact"
+    url = "/contact/"
+    weight = 3
+
+# =============================================================================
+# Outputs
+# =============================================================================
+[outputs]
+  home = ["HTML", "RSS"]
+
+# =============================================================================
+# Taxonomies
+# =============================================================================
+[taxonomies]
+  category = "categories"
+  tag = "tags"
+
+# =============================================================================
+# Markup Settings
+# =============================================================================
+[markup]
+  [markup.highlight]
+    style = "dracula"
+    lineNos = false
+    noClasses = false
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true  # Allow HTML in markdown

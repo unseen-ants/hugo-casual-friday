@@ -1,0 +1,100 @@
+{{/* Audio Player Partial - Listen to Articles */}}
+{{/* Check if audio is enabled in front matter */}}
+{{ $audioEnabled := false }}
+{{ if .Params.audio }}
+  {{ if eq (printf "%T" .Params.audio) "bool" }}
+    {{ $audioEnabled = .Params.audio }}
+  {{ else if isset .Params.audio "enabled" }}
+    {{ $audioEnabled = .Params.audio.enabled }}
+  {{ end }}
+{{ end }}
+
+{{ if $audioEnabled }}
+  {{/* Get audio base URL from site config (supports S3, Azure Blob, CDN, or local) */}}
+  {{ $baseUrl := site.Params.audio.baseURL | default "/audio" }}
+
+  {{/* Get audio data from manifest */}}
+  {{ $audioData := site.Data.audio_manifest }}
+  {{ $postPath := "" }}
+  {{ with .File }}
+    {{ $postPath = path.Join .Dir .BaseFileName }}
+    {{/* Remove leading slash if present */}}
+    {{ $postPath = strings.TrimPrefix "/" $postPath }}
+  {{ end }}
+
+  {{ $audioEntry := index $audioData.posts $postPath }}
+
+  {{ if $audioEntry }}
+    {{/* Audio is available - render player */}}
+    {{ $audioUrl := printf "%s/%s" $baseUrl $audioEntry.file }}
+    {{ $duration := $audioEntry.duration | default 0 }}
+    {{ $durationMin := div $duration 60 }}
+    {{ $durationSec := mod $duration 60 }}
+    {{ $durationFormatted := printf "%d:%02d" $durationMin $durationSec }}
+    {{ $durationMinRound := math.Round (div (float $duration) 60.0) }}
+
+    <div class="audio-player-wrapper" data-audio-url="{{ $audioUrl }}" data-duration="{{ $duration }}">
+      {{/* Listen CTA Button */}}
+      <button class="listen-cta" aria-label="Listen to this article">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"></polygon>
+        </svg>
+        Listen
+        <span class="duration">({{ $durationMinRound }} min)</span>
+      </button>
+
+      {{/* Inline Player - Hidden by default */}}
+      <div class="audio-player-inline" role="region" aria-label="Audio player">
+        <button class="player-play-btn" aria-label="Play">
+          <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display: none;">
+            <rect x="6" y="4" width="4" height="16"></rect>
+            <rect x="14" y="4" width="4" height="16"></rect>
+          </svg>
+        </button>
+
+        <div class="player-track">
+          <div class="player-time-current">0:00</div>
+          <div class="player-seek-container">
+            <div class="player-seek-bar" role="slider" aria-label="Seek" aria-valuemin="0" aria-valuemax="{{ $duration }}" aria-valuenow="0" tabindex="0">
+              <div class="player-seek-track">
+                <div class="player-seek-progress" style="width: 0%;"></div>
+                <div class="player-seek-handle" style="left: 0%;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="player-time-total">{{ $durationFormatted }}</div>
+        </div>
+
+        <div class="player-controls">
+          <button class="player-btn speed-btn" aria-label="Playback speed">1x</button>
+          <a class="player-btn download-btn" href="{{ $audioUrl }}" download aria-label="Download audio" title="Download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </a>
+        </div>
+
+        {{/* Hidden audio element */}}
+        <audio preload="metadata">
+          <source src="{{ $audioUrl }}" type="audio/mpeg">
+        </audio>
+      </div>
+    </div>
+  {{ else }}
+    {{/* Audio is enabled but not yet generated */}}
+    <div class="audio-player-wrapper">
+      <span class="listen-coming-soon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        Audio coming soon
+      </span>
+    </div>
+  {{ end }}
+{{ end }}

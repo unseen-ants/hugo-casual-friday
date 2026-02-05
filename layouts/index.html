@@ -1,0 +1,370 @@
+{{ define "main" }}
+<!-- Hero Section with Banner (Desktop) -->
+<section class="hero">
+  {{ with .Site.Params.heroBanner }}
+  <img src="{{ . }}" alt="Hero banner" class="hero-banner">
+  {{ else }}
+  <img src="/images/hero-banner.png" alt="Hero banner" class="hero-banner">
+  {{ end }}
+  <div class="hero-content">
+    <div class="hero-content-inner">
+      <h1 class="hero-name">{{ .Site.Params.heroTitle | default .Site.Title }}</h1>
+      <p class="hero-tagline">{{ .Site.Params.heroSubtitle | default .Site.Params.description | safeHTML }}</p>
+      {{ with .Site.Params.heroLinks }}
+      <div class="hero-links">
+        {{ range . }}
+        <a href="{{ .url }}" class="hero-link">{{ .text }} →</a>
+        {{ end }}
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+
+<!-- Mobile Featured Banner (shown only on mobile, inside header area) -->
+{{/* Featured Post - First one marked as featured, or most recent */}}
+{{ $featured := where .Site.RegularPages "Params.featured" true }}
+{{ $fallbackPosts := where .Site.RegularPages "Section" "posts" }}
+{{ $mobileFeaturedPost := index $featured 0 }}
+{{ if not $mobileFeaturedPost }}
+  {{ $mobileFeaturedPost = index $fallbackPosts 0 }}
+{{ end }}
+{{ with $mobileFeaturedPost }}
+<section class="mobile-featured-banner">
+  <a href="{{ .Permalink }}" class="mobile-featured-card">
+    <div class="mobile-featured-label">Featured</div>
+    <h2 class="mobile-featured-title">{{ .Title }}</h2>
+    <div class="mobile-featured-meta">
+      {{ with .Params.tags }}{{ $firstTag := index . 0 }}{{ $parts := split $firstTag "/" }}{{ index $parts 0 | humanize | title }}{{ end }} · {{ math.Round (div (countwords .Content) 200.0) }} min read
+    </div>
+  </a>
+</section>
+{{ end }}
+
+<!-- Mobile Tag Bar - horizontal strip right after header (parent tags only) -->
+{{ $featuredTags := .Site.Params.featuredTags }}
+{{ $allTags := .Site.Taxonomies.tags }}
+
+{{/* Filter to parent tags only (tags without "/" in slug) */}}
+{{ $parentTags := slice }}
+{{ range $allTags.ByCount }}
+  {{ if not (strings.Contains .Page.Name "/") }}
+    {{ $parentTags = $parentTags | append . }}
+  {{ end }}
+{{ end }}
+
+{{ $totalParentTags := len $parentTags }}
+{{ $visibleCount := 3 }}
+{{ $remainingCount := sub $totalParentTags $visibleCount }}
+
+{{ if gt $totalParentTags 0 }}
+<div class="mobile-tag-bar">
+  <div class="tag-bar-inner">
+    {{/* Show featured tags first if configured (only if they're parent tags) */}}
+    {{ if $featuredTags }}
+      {{ range $featuredTags }}
+        {{ $tagSlug := . | urlize }}
+        {{/* Only show if it's a parent tag (no slash) */}}
+        {{ if not (strings.Contains $tagSlug "/") }}
+          {{ with index $allTags $tagSlug }}
+          <a href="{{ .Page.Permalink }}" class="tag-bar-pill">{{ .Page.Title }}</a>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+    {{ else }}
+      {{/* Fallback to most popular parent tags */}}
+      {{ range first $visibleCount $parentTags }}
+      <a href="{{ .Page.Permalink }}" class="tag-bar-pill">{{ .Page.Title }}</a>
+      {{ end }}
+    {{ end }}
+    {{ if gt $remainingCount 0 }}
+    <a href="{{ "tags/" | relURL }}" class="tag-bar-pill tag-bar-more">+{{ $remainingCount }} more</a>
+    {{ end }}
+  </div>
+</div>
+{{ end }}
+
+<!-- Main Content Grid: Featured + Latest + Tags -->
+<section class="home-content">
+  <div class="container">
+    <div class="home-grid">
+
+      <!-- Left Column: Featured Essays -->
+      <div class="home-featured">
+        <div class="section-header">
+          <h2 class="section-title">Featured</h2>
+          <span class="section-accent"></span>
+        </div>
+
+        {{/* Featured Posts - Configurable count, capped at latestPostsDesktop */}}
+        {{ $latestCount := .Site.Params.latestPostsDesktop | default 8 }}
+        {{ $featuredCount := .Site.Params.featuredPostsCount | default 1 }}
+        {{/* Ensure featured count doesn't exceed latest count */}}
+        {{ if gt $featuredCount $latestCount }}
+          {{ $featuredCount = $latestCount }}
+        {{ end }}
+
+        {{ $featured := where .Site.RegularPages "Params.featured" true }}
+        {{ $fallbackPosts := sort (where .Site.RegularPages "Section" "posts") "Date" "desc" }}
+
+        {{/* Build the list of featured posts */}}
+        {{ $featuredPosts := slice }}
+        {{ range first $featuredCount $featured }}
+          {{ $featuredPosts = $featuredPosts | append . }}
+        {{ end }}
+
+        {{/* If not enough featured posts, fill with recent posts */}}
+        {{ $remaining := sub $featuredCount (len $featuredPosts) }}
+        {{ if gt $remaining 0 }}
+          {{ range first $remaining $fallbackPosts }}
+            {{/* Avoid duplicates */}}
+            {{ $current := . }}
+            {{ $isDuplicate := false }}
+            {{ range $featuredPosts }}
+              {{ if eq .Permalink $current.Permalink }}
+                {{ $isDuplicate = true }}
+              {{ end }}
+            {{ end }}
+            {{ if not $isDuplicate }}
+              {{ $featuredPosts = $featuredPosts | append . }}
+            {{ end }}
+          {{ end }}
+        {{ end }}
+
+        {{/* Render featured posts */}}
+        {{ range $featuredPosts }}
+        <article class="featured-card">
+          <div class="featured-content">
+            {{ with .Params.tags }}
+            {{ $firstTag := index . 0 }}
+            {{ $parts := split $firstTag "/" }}
+            {{ $parentTag := index $parts 0 }}
+            <div class="post-categories">
+              <a href="{{ "tags/" | relURL }}{{ $parentTag | urlize }}" class="category-tag">{{ $parentTag | humanize | title }}</a>
+              {{ if gt (len $parts) 1 }}
+              {{ $childTag := index $parts 1 }}
+              <a href="{{ "tags/" | relURL }}{{ $firstTag | urlize }}" class="category-tag">{{ $childTag | humanize | title }}</a>
+              {{ end }}
+            </div>
+            {{ end }}
+            <h3 class="featured-title">
+              <a href="{{ .Permalink }}">{{ .Title }}</a>
+            </h3>
+            <p class="featured-excerpt">{{ .Summary | plainify | truncate 200 }}</p>
+            <div class="post-meta">
+              <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2 Jan 2006" }}</time>
+              <span class="meta-sep">·</span>
+              <span class="reading-time">{{ math.Round (div (countwords .Content) 200.0) }} min read</span>
+            </div>
+            <a href="{{ .Permalink }}" class="read-more">
+              Read article
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+          {{ with .Params.image }}
+          <div class="featured-image">
+            <img src="{{ . }}" alt="{{ $.Title }}" loading="lazy">
+          </div>
+          {{ end }}
+        </article>
+        {{ end }}
+
+        <!-- Popular Tags (Pill Cloud) - Desktop only, inside home-featured -->
+        {{ with .Site.Taxonomies.tags }}
+        <div class="tags-cloud-section tags-desktop">
+          <div class="section-header">
+            <h2 class="section-title">Topics</h2>
+            <span class="section-accent"></span>
+          </div>
+          <div class="tags-cloud">
+            {{/* Build list of unique parents and children */}}
+            {{ $parentSlugs := slice }}
+            {{ $childTags := slice }}
+            {{ range .ByCount }}
+              {{ if gt .Count 0 }}
+              {{ $relPath := .Page.RelPermalink }}
+              {{ $tagSlug := strings.TrimPrefix "/tags/" $relPath }}
+              {{ $tagSlug = strings.TrimSuffix "/" $tagSlug }}
+              {{ if strings.Contains $tagSlug "/" }}
+                {{/* Nested tag - extract parent and add to both lists */}}
+                {{ $parts := split $tagSlug "/" }}
+                {{ $parentSlug := index $parts 0 }}
+                {{ if not (in $parentSlugs $parentSlug) }}
+                  {{ $parentSlugs = $parentSlugs | append $parentSlug }}
+                {{ end }}
+                {{ $childTags = $childTags | append . }}
+              {{ else }}
+                {{/* Parent tag */}}
+                {{ if not (in $parentSlugs $tagSlug) }}
+                  {{ $parentSlugs = $parentSlugs | append $tagSlug }}
+                {{ end }}
+              {{ end }}
+              {{ end }}
+            {{ end }}
+            {{/* Display parent pills */}}
+            {{ range first 8 $parentSlugs }}
+            <a href="{{ "tags/" | relURL }}{{ . }}" class="tag-pill">
+              {{ . | humanize | title }}
+            </a>
+            {{ end }}
+            {{/* Display child pills */}}
+            {{ range first 7 $childTags }}
+            {{ $relPath := .Page.RelPermalink }}
+            {{ $tagSlug := strings.TrimPrefix "/tags/" $relPath }}
+            {{ $tagSlug = strings.TrimSuffix "/" $tagSlug }}
+            {{ $parts := split $tagSlug "/" }}
+            {{ $childName := index $parts (sub (len $parts) 1) }}
+            <a href="{{ .Page.Permalink }}" class="tag-pill">
+              {{ $childName | humanize | title }}
+              <span class="tag-count">{{ .Count }}</span>
+            </a>
+            {{ end }}
+          </div>
+          <div class="tags-cloud-footer">
+            <a href="{{ "tags/" | relURL }}" class="view-all-link">View all topics →</a>
+          </div>
+        </div>
+        {{ end }}
+      </div>
+
+      <!-- Right Column: Latest Posts -->
+      <div class="home-latest">
+        <div class="section-header">
+          <h2 class="section-title">Latest</h2>
+          <span class="section-accent"></span>
+        </div>
+
+        {{/* Card image configuration */}}
+        {{ $showCardImages := .Site.Params.showCardImages | default false }}
+
+        {{/* Combine posts from multiple sections and sort by date */}}
+        {{ $allPosts := where .Site.RegularPages "Section" "posts" }}
+        {{ $notEng := where .Site.RegularPages "Section" "not_engineering" }}
+        {{ $combined := $allPosts | append $notEng }}
+        {{ $desktopCount := .Site.Params.latestPostsDesktop | default 8 }}
+        {{ $latestPosts := sort $combined "Date" "desc" | first $desktopCount }}
+        {{ $mobileCount := .Site.Params.latestPostsMobile | default 3 }}
+        {{ if gt (len $latestPosts) 0 }}
+        <div class="latest-list" data-mobile-limit="{{ $mobileCount }}">
+          {{ range $latestPosts }}
+          {{/* Skip posts with no valid date (shows as year 0001) */}}
+          {{ if gt .Date.Year 1 }}
+          <article class="latest-item{{ if and $showCardImages .Params.image }} latest-item-with-image{{ end }}">
+            {{/* Optional thumbnail image with date badge overlay */}}
+            {{ if and $showCardImages .Params.image }}
+            <div class="latest-image-with-date">
+              <a href="{{ .Permalink }}" class="latest-image">
+                <img src="{{ .Params.image }}" alt="{{ .Title }}" loading="lazy">
+              </a>
+              <div class="latest-date-badge">
+                <span class="latest-day">{{ .Date.Format "02" }}</span>
+                <span class="latest-month">{{ .Date.Format "Jan" }}</span>
+              </div>
+            </div>
+            {{ else }}
+            <div class="latest-date">
+              <span class="latest-day">{{ .Date.Format "02" }}</span>
+              <span class="latest-month">{{ .Date.Format "Jan" }}</span>
+            </div>
+            {{ end }}
+            <div class="latest-content">
+              {{ with .Params.tags }}
+              {{ $firstTag := index . 0 }}
+              {{ $parts := split $firstTag "/" }}
+              {{ $parentTag := index $parts 0 }}
+              <div class="post-categories">
+                <a href="{{ "tags/" | relURL }}{{ $parentTag | urlize }}" class="category-tag category-tag-sm">{{ $parentTag | humanize | title }}</a>
+                {{ if gt (len $parts) 1 }}
+                {{ $childTag := index $parts 1 }}
+                <a href="{{ "tags/" | relURL }}{{ $firstTag | urlize }}" class="category-tag category-tag-sm">{{ $childTag | humanize | title }}</a>
+                {{ end }}
+              </div>
+              {{ end }}
+              <h3 class="latest-title">
+                <a href="{{ .Permalink }}">{{ .Title }}</a>
+              </h3>
+              <p class="latest-excerpt">{{ .Summary | plainify | truncate 100 }}</p>
+              <div class="post-meta">
+                <span class="reading-time">{{ math.Round (div (countwords .Content) 200.0) }} min read</span>
+              </div>
+            </div>
+          </article>
+          {{ end }}
+          {{ end }}
+        </div>
+        {{ if gt (len $combined) $desktopCount }}
+        <div class="section-footer">
+          <a href="{{ "posts/" | relURL }}" class="btn btn-secondary">View all essays →</a>
+        </div>
+        {{ end }}
+        {{ end }}
+      </div>
+
+    </div>
+
+    <!-- Mobile Tags Section - separate from home-featured -->
+    {{ with .Site.Taxonomies.tags }}
+    <div class="tags-cloud-section tags-mobile">
+      <div class="section-header">
+        <h2 class="section-title">Topics</h2>
+        <span class="section-accent"></span>
+      </div>
+      <div class="tags-cloud" id="tags-cloud">
+        {{/* Build list of unique parents and children */}}
+        {{ $parentSlugs := slice }}
+        {{ $childTags := slice }}
+        {{ range .ByCount }}
+          {{ if gt .Count 0 }}
+          {{ $relPath := .Page.RelPermalink }}
+          {{ $tagSlug := strings.TrimPrefix "/tags/" $relPath }}
+          {{ $tagSlug = strings.TrimSuffix "/" $tagSlug }}
+          {{ if strings.Contains $tagSlug "/" }}
+            {{/* Nested tag - extract parent and add to both lists */}}
+            {{ $parts := split $tagSlug "/" }}
+            {{ $parentSlug := index $parts 0 }}
+            {{ if not (in $parentSlugs $parentSlug) }}
+              {{ $parentSlugs = $parentSlugs | append $parentSlug }}
+            {{ end }}
+            {{ $childTags = $childTags | append . }}
+          {{ else }}
+            {{/* Parent tag */}}
+            {{ if not (in $parentSlugs $tagSlug) }}
+              {{ $parentSlugs = $parentSlugs | append $tagSlug }}
+            {{ end }}
+          {{ end }}
+          {{ end }}
+        {{ end }}
+        {{/* Display parent pills */}}
+        {{ range first 8 $parentSlugs }}
+        <a href="{{ "tags/" | relURL }}{{ . }}" class="tag-pill">
+          {{ . | humanize | title }}
+        </a>
+        {{ end }}
+        {{/* Display child pills */}}
+        {{ range first 7 $childTags }}
+        {{ $relPath := .Page.RelPermalink }}
+        {{ $tagSlug := strings.TrimPrefix "/tags/" $relPath }}
+        {{ $tagSlug = strings.TrimSuffix "/" $tagSlug }}
+        {{ $parts := split $tagSlug "/" }}
+        {{ $childName := index $parts (sub (len $parts) 1) }}
+        <a href="{{ .Page.Permalink }}" class="tag-pill">
+          {{ $childName | humanize | title }}
+          <span class="tag-count">{{ .Count }}</span>
+        </a>
+        {{ end }}
+      </div>
+      <button class="tags-expand-btn" id="tags-expand-btn" aria-expanded="false">
+        Show all <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </button>
+      <div class="tags-cloud-footer">
+        <a href="{{ "tags/" | relURL }}" class="view-all-link">View all topics →</a>
+      </div>
+    </div>
+    {{ end }}
+
+  </div>
+</section>
+{{ end }}

@@ -1,0 +1,209 @@
+{{ define "main" }}
+<section class="terms-page">
+  <header class="list-header">
+    <h1 class="list-title">{{ .Title }}</h1>
+  </header>
+
+  {{/* Build hierarchical tag structure */}}
+  {{ $allTags := .Pages }}
+  {{ $parentTags := slice }}
+  {{ $childTagsByParent := dict }}
+  {{ $taxonomyName := .Data.Plural }}
+
+  {{ range $allTags }}
+    {{ $tagName := .Title }}
+    {{/* Extract full tag path from RelPermalink (e.g., /tags/leadership/culture/ -> leadership/culture) */}}
+    {{ $relPath := .RelPermalink }}
+    {{ $tagSlug := strings.TrimPrefix (printf "/%s/" $taxonomyName) $relPath }}
+    {{ $tagSlug = strings.TrimSuffix "/" $tagSlug }}
+
+    {{/* Check if this is a child tag (contains /) */}}
+    {{ if strings.Contains $tagSlug "/" }}
+      {{ $parts := split $tagSlug "/" }}
+      {{ $parentSlug := index $parts 0 }}
+
+      {{/* Add to children map */}}
+      {{ $existingChildren := index $childTagsByParent $parentSlug | default slice }}
+      {{ $childTagsByParent = merge $childTagsByParent (dict $parentSlug ($existingChildren | append .)) }}
+    {{ else }}
+      {{/* This is a parent tag */}}
+      {{ $parentTags = $parentTags | append . }}
+    {{ end }}
+  {{ end }}
+
+  {{/* Desktop View: Grouped Cards */}}
+  <div class="tags-hierarchy tags-desktop-view">
+    <div class="tag-cards-grid">
+      {{ range $parentTags }}
+        {{ $parentSlug := .Name }}
+        {{ $children := index $childTagsByParent $parentSlug | default slice }}
+
+        {{/* Calculate total unique posts: parent's own posts + all children's posts (deduplicated) */}}
+        {{ $allPosts := .Pages }}
+        {{ range $children }}
+          {{ range .Pages }}
+            {{ $allPosts = $allPosts | append . }}
+          {{ end }}
+        {{ end }}
+        {{ $totalPosts := len ($allPosts | uniq) }}
+
+        {{/* Only show tags with posts */}}
+        {{ if gt $totalPosts 0 }}
+        <div class="tag-card">
+          <div class="tag-card-header">
+            <a href="{{ .Permalink }}" class="tag-card-title">{{ .Title }}</a>
+            <span class="tag-card-count">{{ $totalPosts }} {{ if eq $totalPosts 1 }}post{{ else }}posts{{ end }}</span>
+          </div>
+          {{ if $children }}
+          <div class="tag-card-children">
+            {{ range $children }}
+              {{/* Display just the child name (e.g., "Culture" not "Leadership/Culture") */}}
+              <a href="{{ .Permalink }}" class="child-pill">
+                {{ .Name | humanize | title }}
+                <span class="child-count">{{ len .Pages }}</span>
+              </a>
+            {{ end }}
+          </div>
+          {{ end }}
+        </div>
+        {{ end }}
+      {{ end }}
+
+      {{/* Handle orphan child tags (children without a parent tag page) */}}
+      {{ $processedParents := slice }}
+      {{ range $parentTags }}
+        {{ $processedParents = $processedParents | append .Name }}
+      {{ end }}
+
+      {{ range $parentSlug, $children := $childTagsByParent }}
+        {{ if not (in $processedParents $parentSlug) }}
+          {{/* This parent doesn't have its own page, create a card for it */}}
+          {{ $allPosts := slice }}
+          {{ range $children }}
+            {{ range .Pages }}
+              {{ $allPosts = $allPosts | append . }}
+            {{ end }}
+          {{ end }}
+          {{ $totalPosts := len ($allPosts | uniq) }}
+
+          {{/* Only show if has posts */}}
+          {{ if gt $totalPosts 0 }}
+          <div class="tag-card">
+            <div class="tag-card-header">
+              <span class="tag-card-title-text">{{ $parentSlug | title }}</span>
+              <span class="tag-card-count">{{ $totalPosts }} {{ if eq $totalPosts 1 }}post{{ else }}posts{{ end }}</span>
+            </div>
+            <div class="tag-card-children">
+              {{ range $children }}
+                <a href="{{ .Permalink }}" class="child-pill">
+                  {{ .Name | humanize | title }}
+                  <span class="child-count">{{ len .Pages }}</span>
+                </a>
+              {{ end }}
+            </div>
+          </div>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+    </div>
+  </div>
+
+  {{/* Mobile View: Accordion */}}
+  <div class="tags-hierarchy tags-mobile-view">
+    <div class="tag-accordion-list">
+      {{ range $parentTags }}
+        {{ $parentSlug := .Name }}
+        {{ $children := index $childTagsByParent $parentSlug | default slice }}
+
+        {{/* Calculate total unique posts */}}
+        {{ $allPosts := .Pages }}
+        {{ range $children }}
+          {{ range .Pages }}
+            {{ $allPosts = $allPosts | append . }}
+          {{ end }}
+        {{ end }}
+        {{ $totalPosts := len ($allPosts | uniq) }}
+
+        {{/* Only show tags with posts */}}
+        {{ if gt $totalPosts 0 }}
+        <div class="tag-accordion-item" data-has-children="{{ if $children }}true{{ else }}false{{ end }}">
+          <div class="tag-accordion-header">
+            <a href="{{ .Permalink }}" class="tag-accordion-title">{{ .Title }}</a>
+            <span class="tag-accordion-count">{{ $totalPosts }}</span>
+            {{ if $children }}
+            <button class="tag-accordion-toggle" aria-expanded="false" aria-label="Expand {{ .Title }} subtags">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            {{ end }}
+          </div>
+          {{ if $children }}
+          <div class="tag-accordion-children">
+            <div class="tag-accordion-child-list">
+              {{ range $children }}
+                <a href="{{ .Permalink }}" class="child-pill">
+                  {{ .Name | humanize | title }}
+                  <span class="child-count">{{ len .Pages }}</span>
+                </a>
+              {{ end }}
+            </div>
+          </div>
+          {{ end }}
+        </div>
+        {{ end }}
+      {{ end }}
+
+      {{/* Handle orphan child tags on mobile too */}}
+      {{ range $parentSlug, $children := $childTagsByParent }}
+        {{ if not (in $processedParents $parentSlug) }}
+          {{ $allPosts := slice }}
+          {{ range $children }}
+            {{ range .Pages }}
+              {{ $allPosts = $allPosts | append . }}
+            {{ end }}
+          {{ end }}
+          {{ $totalPosts := len ($allPosts | uniq) }}
+
+          {{/* Only show if has posts */}}
+          {{ if gt $totalPosts 0 }}
+          <div class="tag-accordion-item" data-has-children="true">
+            <div class="tag-accordion-header">
+              <span class="tag-accordion-title-text">{{ $parentSlug | title }}</span>
+              <span class="tag-accordion-count">{{ $totalPosts }}</span>
+              <button class="tag-accordion-toggle" aria-expanded="false" aria-label="Expand {{ $parentSlug | title }} subtags">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+            <div class="tag-accordion-children">
+              <div class="tag-accordion-child-list">
+                {{ range $children }}
+                  <a href="{{ .Permalink }}" class="child-pill">
+                    {{ .Title }}
+                    <span class="child-count">{{ len .Pages }}</span>
+                  </a>
+                {{ end }}
+              </div>
+            </div>
+          </div>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+    </div>
+  </div>
+
+  {{/* Fallback: Show flat grid if no nested tags detected */}}
+  {{ if and (eq (len $parentTags) 0) (eq (len $childTagsByParent) 0) }}
+  <div class="terms-grid">
+    {{ range .Pages }}
+    <a href="{{ .Permalink }}" class="term-card">
+      <span class="term-name">{{ .Title }}</span>
+      <span class="term-count">{{ len .Pages }} {{ if eq (len .Pages) 1 }}post{{ else }}posts{{ end }}</span>
+    </a>
+    {{ end }}
+  </div>
+  {{ end }}
+</section>
+{{ end }}
