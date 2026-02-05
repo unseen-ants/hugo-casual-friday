@@ -41,7 +41,7 @@ enableRobotsTXT = true
   # ---------------------------------------------------------------------------
   heroTitle = "Your Name"
   heroSubtitle = "Your tagline or short bio.<br>HTML is supported here."
-  heroBanner = "/images/hero-banner.png"
+  heroBanner = "/images/hero-banner.svg"
 
   # Hero background position for mobile (adjusts which part of image is visible)
   # Format: "X% Y%" - e.g., "center center", "60% center", "left top"
