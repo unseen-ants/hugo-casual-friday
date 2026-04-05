@@ -201,6 +201,9 @@
   {{ $cardImagePosition := site.Params.cardImagePosition | default "left" }}
 
   {{ if gt (len $pages) 0 }}
+  {{/* Paginate the assembled list so each page shows pagerSize posts */}}
+  {{ $pag := .Paginate $pages }}
+
     {{/* Timeline layout */}}
     {{ if $useTimeline }}
       <div class="timeline-container">
@@ -294,7 +297,7 @@
     {{ else }}
       {{/* Standard grid layout (single-column or two-column) */}}
       <div class="posts-grid{{ if $showCardImages }} posts-grid-with-images{{ end }}">
-        {{ range $pages }}
+        {{ range $pag.Pages }}
         <article class="post-card{{ if and $showCardImages .Params.image }} post-card-with-image post-card-image-{{ $cardImagePosition }}{{ end }}">
           {{/* Image at top position */}}
           {{ if and $showCardImages (eq $cardImagePosition "top") }}
@@ -385,7 +388,6 @@
     {{ end }}
 
   {{/* Pagination */}}
-  {{ $pag := .Paginator }}
   {{ if gt $pag.TotalPages 1 }}
   <nav class="pagination">
     {{ if $pag.HasPrev }}
