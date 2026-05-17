@@ -75,22 +75,7 @@
 
   {{/* ── Filter bar (content sections only) ── */}}
   {{ if not $isTagPage }}
-  {{ $parentTags := slice }}
-  {{ range $.Site.Taxonomies.tags.ByCount }}
-    {{ if gt .Count 0 }}
-      {{ $rel := .Page.RelPermalink }}
-      {{ $slug := strings.TrimPrefix "/tags/" $rel }}
-      {{ $slug = strings.TrimSuffix "/" $slug }}
-      {{ $parent := $slug }}
-      {{ if strings.Contains $slug "/" }}
-        {{ $parts := split $slug "/" }}
-        {{ $parent = index $parts 0 }}
-      {{ end }}
-      {{ if not (in $parentTags $parent) }}
-        {{ $parentTags = $parentTags | append $parent }}
-      {{ end }}
-    {{ end }}
-  {{ end }}
+  {{ $parentTags := partialCached "taxonomy/parent-slugs.html" $.Site $.Site.Language.Lang }}
   {{ if gt (len $parentTags) 0 }}
   <div class="filter-bar">
     <span class="filter-label">Filter</span>

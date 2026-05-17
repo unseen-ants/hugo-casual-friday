@@ -11,22 +11,7 @@
     <div class="error-divider"></div>
     <div class="error-suggest-label">Or try a topic</div>
     <div class="error-suggest-links">
-      {{ $parentTags := slice }}
-      {{ range .Site.Taxonomies.tags.ByCount }}
-        {{ if gt .Count 0 }}
-          {{ $rel := .Page.RelPermalink }}
-          {{ $slug := strings.TrimPrefix "/tags/" $rel }}
-          {{ $slug = strings.TrimSuffix "/" $slug }}
-          {{ $parent := $slug }}
-          {{ if strings.Contains $slug "/" }}
-            {{ $parts := split $slug "/" }}
-            {{ $parent = index $parts 0 }}
-          {{ end }}
-          {{ if not (in $parentTags $parent) }}
-            {{ $parentTags = $parentTags | append $parent }}
-          {{ end }}
-        {{ end }}
-      {{ end }}
+      {{ $parentTags := partialCached "taxonomy/parent-slugs.html" .Site .Site.Language.Lang }}
       {{ range first 5 $parentTags }}
       <a href="{{ "tags/" | relURL }}{{ . }}" class="error-suggest-link">{{ . | humanize | title }}</a>
       {{ end }}

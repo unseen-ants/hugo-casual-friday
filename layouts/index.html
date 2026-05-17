@@ -178,23 +178,7 @@ var POSTS = [
 
 
 {{/* ── Topics ── */}}
-{{ with .Site.Taxonomies.tags }}
-{{ $parentSlugs := slice }}
-{{ range .ByCount }}
-  {{ if gt .Count 0 }}
-    {{ $relPath := .Page.RelPermalink }}
-    {{ $tagSlug := strings.TrimPrefix "/tags/" $relPath }}
-    {{ $tagSlug = strings.TrimSuffix "/" $tagSlug }}
-    {{ $parent := $tagSlug }}
-    {{ if strings.Contains $tagSlug "/" }}
-      {{ $parts := split $tagSlug "/" }}
-      {{ $parent = index $parts 0 }}
-    {{ end }}
-    {{ if not (in $parentSlugs $parent) }}
-      {{ $parentSlugs = $parentSlugs | append $parent }}
-    {{ end }}
-  {{ end }}
-{{ end }}
+{{ $parentSlugs := partialCached "taxonomy/parent-slugs.html" .Site .Site.Language.Lang }}
 {{ if gt (len $parentSlugs) 0 }}
 <section class="topics-section">
   <div class="section-head">
@@ -207,7 +191,6 @@ var POSTS = [
     {{ end }}
   </div>
 </section>
-{{ end }}
 {{ end }}
 
 {{ end }}

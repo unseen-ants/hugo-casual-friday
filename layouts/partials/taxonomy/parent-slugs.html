@@ -1,0 +1,23 @@
+{{/*
+  Returns a slice of unique parent tag slugs ordered by post count.
+  Handles both flat tags ("technology") and hierarchical tags ("technology/css")
+  by extracting the first path segment as the parent slug.
+
+  Usage: {{ $slugs := partialCached "taxonomy/parent-slugs.html" .Site .Site.Language.Lang }}
+  Context: .Site
+*/}}
+{{ $parentSlugs := slice }}
+{{ range .Taxonomies.tags.ByCount }}
+  {{ if gt .Count 0 }}
+    {{ $slug := strings.TrimPrefix "/tags/" .Page.RelPermalink }}
+    {{ $slug = strings.TrimSuffix "/" $slug }}
+    {{ $parent := $slug }}
+    {{ if strings.Contains $slug "/" }}
+      {{ $parent = index (split $slug "/") 0 }}
+    {{ end }}
+    {{ if not (in $parentSlugs $parent) }}
+      {{ $parentSlugs = $parentSlugs | append $parent }}
+    {{ end }}
+  {{ end }}
+{{ end }}
+{{ return $parentSlugs }}
