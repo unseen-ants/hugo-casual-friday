@@ -4,10 +4,10 @@
 name = "Casual Friday"
 license = "MIT"
 licenselink = "https://github.com/unseen-ants/hugo-casual-friday/blob/main/LICENSE"
-description = "A warm, inviting Hugo theme with elegant serif typography, dark mode, and thoughtful details for personal blogs and portfolios."
+description = "A warm parchment-toned Hugo theme with editorial typography (Fraunces, Inter Tight, JetBrains Mono), three-state dark mode, and a journal-like aesthetic for personal blogs and essay sites."
 homepage = "https://github.com/unseen-ants/hugo-casual-friday"
-tags = ["blog", "portfolio", "personal", "responsive", "dark mode", "minimal", "serif", "audio"]
-features = ["dark mode", "responsive", "audio player", "hierarchical tags", "tag clouds", "featured posts", "configurable colors", "timeline layout"]
+tags = ["blog", "personal", "editorial", "responsive", "dark mode", "minimal", "typography", "audio", "journal"]
+features = ["dark mode", "responsive", "audio player", "hierarchical tags", "featured carousel", "configurable accent colors", "timeline layout", "now page panel"]
 min_version = "0.112.0"
 
 [author]

@@ -208,73 +208,38 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-<!-- Fonts: Playfair Display for headings, Source Serif for body -->
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400;1,8..60,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-<!-- Theme CSS -->
+<!-- Theme CSS (fonts loaded via @import in CSS) -->
 {{- $styles := resources.Get "css/main.css" | resources.Minify | resources.Fingerprint }}
 <link rel="stylesheet" href="{{ $styles.RelPermalink }}" integrity="{{ $styles.Data.Integrity }}">
 
-<!-- Configurable Theme Colors (from hugo.toml) -->
+<!-- Accent Color Override (from hugo.toml) -->
+{{ $accentColor := site.Params.accentColor | default "lime" }}
+{{ if ne $accentColor "lime" }}
 <style>
   :root {
-    {{/* Accent Color Configuration */}}
-    {{ $accentColor := site.Params.accentColor | default "cerulean" }}
-    {{ $accent := "#0891b2" }}
-    {{ $accentHover := "#0e7490" }}
-    {{ if eq $accentColor "cerulean" }}
-      {{ $accent = "#0891b2" }}
-      {{ $accentHover = "#0e7490" }}
+    {{/* oklch presets */}}
+    {{ if eq $accentColor "amber" }}
+    --accent: oklch(0.82 0.15 75);
+    {{ else if eq $accentColor "coral" }}
+    --accent: oklch(0.75 0.18 30);
+    {{ else if eq $accentColor "sky" }}
+    --accent: oklch(0.80 0.12 220);
+    {{/* Legacy hex presets */}}
+    {{ else if eq $accentColor "cerulean" }}
+    --accent: #0891b2;
     {{ else if eq $accentColor "crimson" }}
-      {{ $accent = "#DC2626" }}
-      {{ $accentHover = "#B91C1C" }}
+    --accent: #DC2626;
     {{ else if eq $accentColor "purple" }}
-      {{ $accent = "#7C3AED" }}
-      {{ $accentHover = "#6D28D9" }}
+    --accent: #7C3AED;
     {{ else if eq $accentColor "teal" }}
-      {{ $accent = "#0D9488" }}
-      {{ $accentHover = "#0F766E" }}
-    {{ else if eq $accentColor "amber" }}
-      {{ $accent = "#D97706" }}
-      {{ $accentHover = "#B45309" }}
-    {{ else if hasPrefix $accentColor "#" }}
-      {{ $accent = $accentColor }}
-      {{ $accentHover = $accentColor }}
-    {{ end }}
-    --accent: {{ $accent }};
-    --accent-hover: {{ $accentHover }};
-    --accent-subtle: {{ $accent }}1a;
-  }
-
-  {{/* Background Scheme Configuration - Always output to override CSS defaults */}}
-  {{ $bgScheme := site.Params.backgroundScheme | default "warm" }}
-
-  /* Background scheme: {{ $bgScheme }} */
-  [data-theme="light"] {
-    {{ if eq $bgScheme "cool" }}
-    /* Cool background scheme - subtle blue-gray tint */
-    --bg-primary: #f5f7fa !important;
-    --bg-secondary: #fafbfc !important;
-    --bg-tertiary: #eef1f5 !important;
-    --border-color: #dde3eb !important;
-    --border-subtle: #eef1f5 !important;
-    {{ else if eq $bgScheme "neutral" }}
-    /* Neutral background scheme - pure gray tones */
-    --bg-primary: #f5f5f5 !important;
-    --bg-secondary: #fafafa !important;
-    --bg-tertiary: #eeeeee !important;
-    --border-color: #e0e0e0 !important;
-    --border-subtle: #eeeeee !important;
+    --accent: #0D9488;
+    {{/* Raw value passthrough (hex, oklch, etc.) */}}
     {{ else }}
-    /* Warm background scheme (default) - subtle cream/beige tint */
-    --bg-primary: #f7f6f3 !important;
-    --bg-secondary: #fdfcfa !important;
-    --bg-tertiary: #efeee9 !important;
-    --border-color: #e2e1db !important;
-    --border-subtle: #efeee9 !important;
+    --accent: {{ $accentColor }};
     {{ end }}
   }
 </style>
+{{ end }}
 
 {{/* ==========================================================================
     RSS & Feeds
@@ -302,11 +267,8 @@
     Theme Color for Mobile Browsers
     ========================================================================== */}}
 
-{{ $bgScheme := site.Params.backgroundScheme | default "warm" }}
-{{ $lightBg := "#f7f6f3" }}
-{{ if eq $bgScheme "cool" }}{{ $lightBg = "#f5f7fa" }}{{ else if eq $bgScheme "neutral" }}{{ $lightBg = "#f5f5f5" }}{{ end }}
-<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="{{ $lightBg }}" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#181410" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4efe4" media="(prefers-color-scheme: light)">
 
 {{/* ==========================================================================
     Preload Critical Resources
@@ -319,16 +281,63 @@
 {{ end }}
 
 {{/* ==========================================================================
-    Theme Detection Script (prevents flash)
+    Theme Toggle Script (prevents flash — must run before paint)
+    3-state cycle: Auto → Light → Dark
     ========================================================================== */}}
 
 <script>
-  (function() {
-    const stored = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const theme = stored || (prefersDark ? 'dark' : 'light');
-    document.documentElement.setAttribute('data-theme', theme);
-  })();
+(function () {
+  var STORAGE_KEY = "avijit-theme";
+  var MODES = ["auto", "light", "dark"];
+
+  function applyMode(mode) {
+    if (mode === "auto") {
+      document.documentElement.removeAttribute("data-theme");
+    } else {
+      document.documentElement.setAttribute("data-theme", mode);
+    }
+  }
+
+  function getStoredMode() {
+    try { return localStorage.getItem(STORAGE_KEY) || "auto"; }
+    catch (_) { return "auto"; }
+  }
+
+  function setStoredMode(mode) {
+    try { localStorage.setItem(STORAGE_KEY, mode); } catch (_) {}
+  }
+
+  function effective(mode) {
+    if (mode !== "auto") return mode;
+    return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  applyMode(getStoredMode());
+
+  window.avijitTheme = {
+    get: getStoredMode,
+    effective: function() { return effective(getStoredMode()); },
+    set: function(mode) {
+      if (MODES.indexOf(mode) === -1) return;
+      setStoredMode(mode);
+      applyMode(mode);
+      document.dispatchEvent(new CustomEvent("avijit-theme-change", { detail: { mode: mode, effective: effective(mode) } }));
+    },
+    cycle: function() {
+      var cur = getStoredMode();
+      var next = MODES[(MODES.indexOf(cur) + 1) % MODES.length];
+      window.avijitTheme.set(next);
+      return next;
+    },
+    onChange: function(cb) { document.addEventListener("avijit-theme-change", function(e) { cb(e.detail); }); }
+  };
+
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function() {
+    if (getStoredMode() === "auto") {
+      document.dispatchEvent(new CustomEvent("avijit-theme-change", { detail: { mode: "auto", effective: effective("auto") } }));
+    }
+  });
+})();
 </script>
 
 {{/* ==========================================================================

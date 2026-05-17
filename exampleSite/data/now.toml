@@ -1,0 +1,22 @@
+# =============================================================================
+# "Now" Panel — shown on the homepage dark panel (Now tab)
+# Each item has a key (label) and value (content)
+# =============================================================================
+
+updated = "May 2026"
+
+[[items]]
+  key = "Writing"
+  value = "An essay on collapsed perimeters"
+
+[[items]]
+  key = "Reading"
+  value = "Thinking in Systems — Meadows"
+
+[[items]]
+  key = "Shipping"
+  value = "SLO workbook, v0.3"
+
+[[items]]
+  key = "Open to"
+  value = "Advising, speaking, coffee"

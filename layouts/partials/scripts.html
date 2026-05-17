@@ -1,209 +1,295 @@
 <script>
-// Theme toggle
-const themeToggle = document.getElementById('theme-toggle');
-const html = document.documentElement;
-
-themeToggle.addEventListener('click', () => {
-  const current = html.getAttribute('data-theme');
-  const next = current === 'dark' ? 'light' : 'dark';
-  html.setAttribute('data-theme', next);
-  localStorage.setItem('theme', next);
-});
-
-// Mobile menu toggle
-const menuToggle = document.getElementById('menu-toggle');
-const siteNav = document.querySelector('.site-nav');
-
-menuToggle.addEventListener('click', () => {
-  siteNav.classList.toggle('is-open');
-  menuToggle.setAttribute('aria-expanded', siteNav.classList.contains('is-open'));
-});
-
-// Close mobile menu on link click
-document.querySelectorAll('.nav-link').forEach(link => {
-  link.addEventListener('click', () => {
-    siteNav.classList.remove('is-open');
-  });
-});
-
-// Tags expand/collapse (mobile)
-const tagsExpandBtn = document.getElementById('tags-expand-btn');
-const tagsCloud = document.getElementById('tags-cloud');
-
-if (tagsExpandBtn && tagsCloud) {
-  tagsExpandBtn.addEventListener('click', () => {
-    const isExpanded = tagsExpandBtn.getAttribute('aria-expanded') === 'true';
-    tagsExpandBtn.setAttribute('aria-expanded', !isExpanded);
-    tagsCloud.classList.toggle('expanded');
-  });
-}
-
-// Tag accordion (for /tags/ page on mobile)
-document.querySelectorAll('.tag-accordion-toggle').forEach(toggle => {
-  toggle.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const item = toggle.closest('.tag-accordion-item');
-    const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
-
-    // Toggle current item
-    toggle.setAttribute('aria-expanded', !isExpanded);
-    item.classList.toggle('expanded');
-  });
-});
-
 // =============================================================================
-// Audio Player - Listen to Articles
+// Mobile Nav Toggle (hamburger + dropdown)
 // =============================================================================
 (function() {
-  const speedOptions = [0.75, 1, 1.25, 1.5, 2];
+  var hamburger = document.getElementById('hamburger');
+  var dropdown = document.getElementById('nav-dropdown');
+  var navPill = document.getElementById('nav-pill');
+  if (!hamburger || !dropdown) return;
 
-  // Format seconds to MM:SS
-  function formatTime(seconds) {
-    if (isNaN(seconds) || seconds < 0) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  hamburger.addEventListener('click', function() {
+    hamburger.classList.toggle('open');
+    dropdown.classList.toggle('open');
+    if (navPill) navPill.classList.toggle('nav-open');
+  });
+
+  // Close on dropdown link click
+  dropdown.querySelectorAll('.dd-item').forEach(function(link) {
+    link.addEventListener('click', function() {
+      hamburger.classList.remove('open');
+      dropdown.classList.remove('open');
+      if (navPill) navPill.classList.remove('nav-open');
+    });
+  });
+
+  // Close on outside click
+  document.addEventListener('click', function(e) {
+    if (!hamburger.contains(e.target) && !dropdown.contains(e.target)) {
+      hamburger.classList.remove('open');
+      dropdown.classList.remove('open');
+      if (navPill) navPill.classList.remove('nav-open');
+    }
+  });
+})();
+
+// =============================================================================
+// Theme Toggle (uses window.avijitTheme from head.html)
+// =============================================================================
+(function() {
+  var GLYPHS = { auto: '◐ Auto', light: '☀ Light', dark: '☾ Dark' };
+  var btn = document.getElementById('theme-toggle');
+  if (!btn || !window.avijitTheme) return;
+
+  function updateLabel(mode) {
+    btn.textContent = GLYPHS[mode] || GLYPHS.auto;
   }
 
-  // Initialize all audio players on the page
-  document.querySelectorAll('.audio-player-wrapper').forEach(wrapper => {
-    const cta = wrapper.querySelector('.listen-cta');
-    const player = wrapper.querySelector('.audio-player-inline');
-    const audio = wrapper.querySelector('audio');
+  updateLabel(window.avijitTheme.get());
 
-    if (!cta || !player || !audio) return;
+  btn.addEventListener('click', function() {
+    var next = window.avijitTheme.cycle();
+    updateLabel(next);
+  });
 
-    const playBtn = player.querySelector('.player-play-btn');
-    const iconPlay = playBtn.querySelector('.icon-play');
-    const iconPause = playBtn.querySelector('.icon-pause');
-    const timeCurrent = player.querySelector('.player-time-current');
-    const timeTotal = player.querySelector('.player-time-total');
-    const seekBar = player.querySelector('.player-seek-bar');
-    const seekProgress = player.querySelector('.player-seek-progress');
-    const seekHandle = player.querySelector('.player-seek-handle');
-    const speedBtn = player.querySelector('.speed-btn');
+  window.avijitTheme.onChange(function(detail) {
+    updateLabel(detail.mode);
+  });
+})();
 
-    let currentSpeedIndex = 1; // Default to 1x
+// =============================================================================
+// Homepage Carousel (Featured tab)
+// =============================================================================
+(function() {
+  var body = document.getElementById('carousel-body');
+  if (!body) return;
 
-    // CTA click - show player and start playback
-    cta.addEventListener('click', () => {
-      cta.style.display = 'none';
-      player.classList.add('is-active');
-      audio.play().catch(() => {
-        // Autoplay may be blocked, user can click play button
+  var tagsEl = document.getElementById('c-tags');
+  var titleEl = document.getElementById('c-title-text');
+  var excerptEl = document.getElementById('c-excerpt');
+  var metaEl = document.getElementById('c-meta');
+  var dotsEl = document.getElementById('c-dots');
+  var nextUpEl = document.getElementById('c-next');
+  var prevBtn = document.getElementById('arrow-prev');
+  var nextBtn = document.getElementById('arrow-next');
+
+  // POSTS is injected by the homepage template as a JSON array
+  if (typeof POSTS === 'undefined' || !POSTS.length) return;
+
+  var current = 0;
+
+  function decodeEntities(str) {
+    var el = document.createElement('textarea');
+    el.innerHTML = str;
+    return el.value;
+  }
+
+  function render(index) {
+    var post = POSTS[index];
+    if (!post) return;
+
+    // Fade out
+    body.style.opacity = '0';
+    body.style.transform = 'translateY(5px)';
+
+    setTimeout(function() {
+      // Tags
+      if (tagsEl) {
+        tagsEl.innerHTML = '';
+        (post.tags || []).forEach(function(tag) {
+          var span = document.createElement('span');
+          span.className = 'carousel-tag';
+          span.textContent = tag;
+          tagsEl.appendChild(span);
+        });
+      }
+
+      // Title
+      if (titleEl) titleEl.textContent = post.title || '';
+
+      // Excerpt
+      if (excerptEl) excerptEl.textContent = decodeEntities(post.excerpt || '');
+
+      // Meta
+      if (metaEl) metaEl.textContent = (post.date || '') + ' · ' + (post.readTime || '') + ' read';
+
+      // Next up
+      var nextPost = POSTS[(index + 1) % POSTS.length];
+      if (nextUpEl && nextPost) nextUpEl.textContent = nextPost.title;
+
+      // Link
+      var titleLink = body.querySelector('.carousel-title');
+      if (titleLink && post.url) titleLink.href = post.url;
+
+      // Dots
+      if (dotsEl) {
+        dotsEl.innerHTML = '';
+        POSTS.forEach(function(_, i) {
+          var dot = document.createElement('button');
+          dot.className = i === index ? 'dot-active' : 'dot-inactive';
+          dot.setAttribute('aria-label', 'Slide ' + (i + 1));
+          dot.addEventListener('click', function() { current = i; render(i); });
+          dotsEl.appendChild(dot);
+        });
+      }
+
+      // Fade in
+      body.style.opacity = '1';
+      body.style.transform = 'translateY(0)';
+    }, 180);
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function() {
+    current = (current - 1 + POSTS.length) % POSTS.length;
+    render(current);
+  });
+  if (nextBtn) nextBtn.addEventListener('click', function() {
+    current = (current + 1) % POSTS.length;
+    render(current);
+  });
+
+  render(0);
+
+  // Tab switching (Featured / Now)
+  document.querySelectorAll('.tab-btn').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var target = tab.getAttribute('data-tab');
+      document.querySelectorAll('.tab-btn').forEach(function(t) {
+        t.className = 'tab-btn ' + (t.getAttribute('data-tab') === target ? 'tab-active' : 'tab-inactive');
+      });
+      document.querySelectorAll('.panel-view').forEach(function(v) {
+        v.classList.toggle('active', v.getAttribute('data-panel') === target);
       });
     });
+  });
+})();
 
-    // Play/Pause toggle
-    playBtn.addEventListener('click', () => {
-      if (audio.paused) {
-        audio.play();
-      } else {
-        audio.pause();
-      }
+// =============================================================================
+// List Page Filter Bar
+// =============================================================================
+(function() {
+  var pills = document.querySelectorAll('.filter-pill');
+  if (!pills.length) return;
+
+  pills.forEach(function(pill) {
+    pill.addEventListener('click', function() {
+      var tag = pill.getAttribute('data-tag');
+
+      // Update active state
+      pills.forEach(function(p) { p.classList.remove('active'); });
+      pill.classList.add('active');
+
+      // Filter timeline items
+      document.querySelectorAll('.timeline-item').forEach(function(item) {
+        if (!tag || tag === 'all') {
+          item.style.display = '';
+        } else {
+          var tags = item.getAttribute('data-tags') || '';
+          item.style.display = tags.toLowerCase().indexOf(tag.toLowerCase()) !== -1 ? '' : 'none';
+        }
+      });
     });
+  });
+})();
 
-    // Update play/pause icons
-    audio.addEventListener('play', () => {
-      iconPlay.style.display = 'none';
-      iconPause.style.display = 'block';
-      playBtn.setAttribute('aria-label', 'Pause');
-    });
+// =============================================================================
+// Audio Player
+// =============================================================================
+(function() {
+  var speedOptions = [0.75, 1, 1.25, 1.5, 2];
 
-    audio.addEventListener('pause', () => {
-      iconPlay.style.display = 'block';
-      iconPause.style.display = 'none';
-      playBtn.setAttribute('aria-label', 'Play');
-    });
+  function formatTime(seconds) {
+    if (isNaN(seconds) || seconds < 0) return '0:00';
+    var mins = Math.floor(seconds / 60);
+    var secs = Math.floor(seconds % 60);
+    return mins + ':' + (secs < 10 ? '0' : '') + secs;
+  }
 
-    // Update progress bar on time update
-    audio.addEventListener('timeupdate', () => {
-      if (audio.duration) {
-        const progress = (audio.currentTime / audio.duration) * 100;
-        seekProgress.style.width = `${progress}%`;
-        seekHandle.style.left = `${progress}%`;
-        timeCurrent.textContent = formatTime(audio.currentTime);
-        seekBar.setAttribute('aria-valuenow', Math.floor(audio.currentTime));
-      }
-    });
+  document.querySelectorAll('.ap-container').forEach(function(container) {
+    var cta = container.querySelector('.ap-cta');
+    var player = container.querySelector('.ap-player');
+    var audio = container.querySelector('audio');
+    if (!audio) return;
 
-    // Update total time when metadata loads
-    audio.addEventListener('loadedmetadata', () => {
-      timeTotal.textContent = formatTime(audio.duration);
-      seekBar.setAttribute('aria-valuemax', Math.floor(audio.duration));
-    });
+    var playBtn = container.querySelector('.ap-play');
+    var timeCurrent = container.querySelector('.ap-time-current');
+    var timeTotal = container.querySelector('.ap-time-total');
+    var barWrap = container.querySelector('.ap-bar-wrap');
+    var barFill = container.querySelector('.ap-bar-fill');
+    var handle = container.querySelector('.ap-handle');
+    var speedBtn = container.querySelector('.ap-speed');
 
-    // Seek on click/drag
-    function seekToPosition(e) {
-      const rect = seekBar.getBoundingClientRect();
-      const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      audio.currentTime = percent * audio.duration;
+    var currentSpeedIndex = 1;
+
+    if (cta && player) {
+      cta.addEventListener('click', function() {
+        cta.style.display = 'none';
+        player.style.display = 'flex';
+        audio.play().catch(function() {});
+      });
     }
 
-    seekBar.addEventListener('click', seekToPosition);
+    if (playBtn) {
+      playBtn.addEventListener('click', function() {
+        if (audio.paused) { audio.play(); } else { audio.pause(); }
+      });
+    }
 
-    // Drag to seek
-    let isDragging = false;
-    seekBar.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      seekToPosition(e);
+    audio.addEventListener('play', function() {
+      if (playBtn) playBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+    });
+    audio.addEventListener('pause', function() {
+      if (playBtn) playBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>';
     });
 
-    document.addEventListener('mousemove', (e) => {
-      if (isDragging) {
-        seekToPosition(e);
-      }
+    audio.addEventListener('timeupdate', function() {
+      if (!audio.duration) return;
+      var pct = (audio.currentTime / audio.duration) * 100;
+      if (barFill) barFill.style.width = pct + '%';
+      if (handle) handle.style.left = pct + '%';
+      if (timeCurrent) timeCurrent.textContent = formatTime(audio.currentTime);
     });
 
-    document.addEventListener('mouseup', () => {
-      isDragging = false;
+    audio.addEventListener('loadedmetadata', function() {
+      if (timeTotal) timeTotal.textContent = formatTime(audio.duration);
     });
 
-    // Touch support for seek
-    seekBar.addEventListener('touchstart', (e) => {
-      isDragging = true;
-      const touch = e.touches[0];
-      seekToPosition({ clientX: touch.clientX });
-    });
+    function seekTo(e) {
+      if (!barWrap || !audio.duration) return;
+      var rect = barWrap.getBoundingClientRect();
+      var pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      audio.currentTime = pct * audio.duration;
+    }
 
-    seekBar.addEventListener('touchmove', (e) => {
-      if (isDragging) {
-        const touch = e.touches[0];
-        seekToPosition({ clientX: touch.clientX });
-      }
-    });
+    if (barWrap) {
+      var dragging = false;
+      barWrap.addEventListener('click', seekTo);
+      barWrap.addEventListener('mousedown', function(e) { dragging = true; seekTo(e); });
+      document.addEventListener('mousemove', function(e) { if (dragging) seekTo(e); });
+      document.addEventListener('mouseup', function() { dragging = false; });
+      barWrap.addEventListener('touchstart', function(e) { dragging = true; seekTo({ clientX: e.touches[0].clientX }); });
+      barWrap.addEventListener('touchmove', function(e) { if (dragging) seekTo({ clientX: e.touches[0].clientX }); });
+      barWrap.addEventListener('touchend', function() { dragging = false; });
+      barWrap.addEventListener('keydown', function(e) {
+        var step = audio.duration * 0.05;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { audio.currentTime = Math.min(audio.duration, audio.currentTime + step); e.preventDefault(); }
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { audio.currentTime = Math.max(0, audio.currentTime - step); e.preventDefault(); }
+      });
+    }
 
-    seekBar.addEventListener('touchend', () => {
-      isDragging = false;
-    });
+    if (speedBtn) {
+      speedBtn.addEventListener('click', function() {
+        currentSpeedIndex = (currentSpeedIndex + 1) % speedOptions.length;
+        var s = speedOptions[currentSpeedIndex];
+        audio.playbackRate = s;
+        speedBtn.textContent = s === 1 ? '1x' : s + 'x';
+      });
+    }
 
-    // Keyboard support for seek bar
-    seekBar.addEventListener('keydown', (e) => {
-      const step = audio.duration * 0.05; // 5% of duration
-      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
-        audio.currentTime = Math.min(audio.duration, audio.currentTime + step);
-        e.preventDefault();
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
-        audio.currentTime = Math.max(0, audio.currentTime - step);
-        e.preventDefault();
-      }
-    });
-
-    // Speed control
-    speedBtn.addEventListener('click', () => {
-      currentSpeedIndex = (currentSpeedIndex + 1) % speedOptions.length;
-      const newSpeed = speedOptions[currentSpeedIndex];
-      audio.playbackRate = newSpeed;
-      speedBtn.textContent = newSpeed === 1 ? '1x' : `${newSpeed}x`;
-    });
-
-    // Reset on ended
-    audio.addEventListener('ended', () => {
-      seekProgress.style.width = '0%';
-      seekHandle.style.left = '0%';
-      timeCurrent.textContent = '0:00';
+    audio.addEventListener('ended', function() {
+      if (barFill) barFill.style.width = '0%';
+      if (handle) handle.style.left = '0%';
+      if (timeCurrent) timeCurrent.textContent = '0:00';
     });
   });
 })();
@@ -212,146 +298,109 @@ document.querySelectorAll('.tag-accordion-toggle').forEach(toggle => {
 // Code Copy Button
 // =============================================================================
 (function() {
-  // Add copy buttons to all code blocks
-  document.querySelectorAll('pre > code').forEach(codeBlock => {
-    const pre = codeBlock.parentElement;
+  document.querySelectorAll('pre > code').forEach(function(codeBlock) {
+    var pre = codeBlock.parentElement;
 
-    // Create copy button
-    const copyBtn = document.createElement('button');
+    var copyBtn = document.createElement('button');
     copyBtn.className = 'code-copy-btn';
     copyBtn.setAttribute('aria-label', 'Copy code to clipboard');
-    copyBtn.innerHTML = `
-      <svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-      </svg>
-      <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-        <polyline points="20 6 9 17 4 12"></polyline>
-      </svg>
-    `;
+    copyBtn.innerHTML = '<svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><svg class="icon-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polyline points="20 6 9 17 4 12"></polyline></svg>';
 
-    // Wrap pre in a container for positioning
-    const wrapper = document.createElement('div');
+    var wrapper = document.createElement('div');
     wrapper.className = 'code-block-wrapper';
     pre.parentNode.insertBefore(wrapper, pre);
     wrapper.appendChild(pre);
     wrapper.appendChild(copyBtn);
 
-    // Copy functionality
-    copyBtn.addEventListener('click', async () => {
-      const code = codeBlock.textContent;
-
-      try {
-        await navigator.clipboard.writeText(code);
-
-        // Show success state
-        const iconCopy = copyBtn.querySelector('.icon-copy');
-        const iconCheck = copyBtn.querySelector('.icon-check');
+    copyBtn.addEventListener('click', function() {
+      var code = codeBlock.textContent;
+      navigator.clipboard.writeText(code).then(function() {
+        var iconCopy = copyBtn.querySelector('.icon-copy');
+        var iconCheck = copyBtn.querySelector('.icon-check');
         iconCopy.style.display = 'none';
         iconCheck.style.display = 'block';
         copyBtn.classList.add('copied');
-
-        // Reset after 2 seconds
-        setTimeout(() => {
+        setTimeout(function() {
           iconCopy.style.display = 'block';
           iconCheck.style.display = 'none';
           copyBtn.classList.remove('copied');
         }, 2000);
-      } catch (err) {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = code;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-9999px';
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-          document.execCommand('copy');
-          copyBtn.classList.add('copied');
-          setTimeout(() => copyBtn.classList.remove('copied'), 2000);
-        } catch (e) {
-          console.error('Copy failed:', e);
-        }
-        document.body.removeChild(textArea);
-      }
+      }).catch(function() {
+        var ta = document.createElement('textarea');
+        ta.value = code;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); copyBtn.classList.add('copied'); setTimeout(function() { copyBtn.classList.remove('copied'); }, 2000); } catch (e) {}
+        document.body.removeChild(ta);
+      });
     });
   });
 })();
 
 // =============================================================================
-// TOC Scroll Spy - Highlight active section
+// TOC Scroll Spy
 // =============================================================================
 (function() {
-  const tocSidebar = document.querySelector('.article-toc-sidebar');
+  var tocSidebar = document.querySelector('.toc-sidebar');
   if (!tocSidebar) return;
 
-  const tocLinks = tocSidebar.querySelectorAll('.toc-nav a');
+  var tocItems = tocSidebar.querySelectorAll('#TableOfContents li, .toc-item');
+  var tocLinks = tocSidebar.querySelectorAll('#TableOfContents li a, .toc-item a');
   if (!tocLinks.length) return;
 
-  // Get all heading IDs from TOC links
-  const headingIds = Array.from(tocLinks).map(link => {
-    const href = link.getAttribute('href');
+  var headingIds = Array.from(tocLinks).map(function(link) {
+    var href = link.getAttribute('href');
     return href ? href.slice(1) : null;
   }).filter(Boolean);
 
-  // Get corresponding headings from the page
-  const headings = headingIds
-    .map(id => document.getElementById(id))
-    .filter(Boolean);
-
+  var headings = headingIds.map(function(id) { return document.getElementById(id); }).filter(Boolean);
   if (!headings.length) return;
 
-  // Throttle function for scroll performance
-  function throttle(fn, wait) {
-    let lastTime = 0;
-    return function(...args) {
-      const now = Date.now();
-      if (now - lastTime >= wait) {
-        lastTime = now;
-        fn.apply(this, args);
-      }
-    };
-  }
+  var lastTime = 0;
+  function updateActive() {
+    var now = Date.now();
+    if (now - lastTime < 100) return;
+    lastTime = now;
 
-  // Find active section based on scroll position
-  function updateActiveSection() {
-    const scrollY = window.scrollY;
-    const offset = 100; // Offset from top to trigger active state
+    var scrollY = window.scrollY;
+    var activeId = null;
 
-    let activeId = null;
-
-    // Find the heading that's currently in view
-    for (let i = headings.length - 1; i >= 0; i--) {
-      const heading = headings[i];
-      const rect = heading.getBoundingClientRect();
-      const top = rect.top + scrollY;
-
-      if (scrollY >= top - offset) {
-        activeId = heading.id;
+    for (var i = headings.length - 1; i >= 0; i--) {
+      if (scrollY >= headings[i].getBoundingClientRect().top + scrollY - 100) {
+        activeId = headings[i].id;
         break;
       }
     }
 
-    // If no heading found (at top of page), use first one
-    if (!activeId && headings.length > 0) {
-      activeId = headings[0].id;
-    }
+    if (!activeId && headings.length) activeId = headings[0].id;
 
-    // Update active class on TOC links
-    tocLinks.forEach(link => {
-      const href = link.getAttribute('href');
-      if (href === `#${activeId}`) {
-        link.classList.add('active');
+    tocItems.forEach(function(item) {
+      var link = item.querySelector('a');
+      if (link && link.getAttribute('href') === '#' + activeId) {
+        item.classList.add('active');
       } else {
-        link.classList.remove('active');
+        item.classList.remove('active');
       }
     });
   }
 
-  // Listen for scroll events (throttled)
-  window.addEventListener('scroll', throttle(updateActiveSection, 100), { passive: true });
+  window.addEventListener('scroll', updateActive, { passive: true });
+  updateActive();
+})();
 
-  // Initial update
-  updateActiveSection();
+// =============================================================================
+// Terms Accordion (mobile)
+// =============================================================================
+(function() {
+  document.querySelectorAll('.terms-accordion-header').forEach(function(header) {
+    header.addEventListener('click', function() {
+      var expanded = header.getAttribute('aria-expanded') === 'true';
+      header.setAttribute('aria-expanded', !expanded);
+      var body = header.nextElementSibling;
+      if (body) body.classList.toggle('open');
+    });
+  });
 })();
 </script>

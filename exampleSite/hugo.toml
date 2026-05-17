@@ -6,7 +6,7 @@
 # =============================================================================
 
 baseURL = "https://example.com/"
-title = "My Site"
+title = "Avijit ~ Ajay"
 theme = "casual-friday"
 languageCode = "en-gb"
 enableRobotsTXT = true
@@ -18,16 +18,16 @@ enableRobotsTXT = true
 # Theme Parameters
 # =============================================================================
 [params]
-  description = "Your site description for SEO and social sharing"
+  description = "Security, infrastructure, and the small invisible decisions that decide whether a Tuesday is quiet."
 
   # ---------------------------------------------------------------------------
   # SEO Settings
   # ---------------------------------------------------------------------------
-  author = "Your Name"
-  keywords = ["blog", "portfolio", "personal"]
+  author = "Avijit Ajay"
+  keywords = ["engineering", "security", "finops", "infrastructure", "leadership"]
 
   # Optional: tagline appended to homepage title
-  # tagline = "Your Site Tagline"
+  # tagline = "Engineering Leadership"
 
   # Default image for social sharing (used when posts don't have an image)
   # ogImage = "/images/og-default.png"
@@ -37,51 +37,64 @@ enableRobotsTXT = true
   # appleTouchIcon = "/apple-touch-icon.png"
 
   # ---------------------------------------------------------------------------
+  # Brand
+  # ---------------------------------------------------------------------------
+  # Character used to split the site title in the nav (default: "~")
+  titleSeparator = "~"
+
+  # ---------------------------------------------------------------------------
   # Hero Section (Homepage)
   # ---------------------------------------------------------------------------
-  heroTitle = "Your Name"
-  heroSubtitle = "Your tagline or short bio.<br>HTML is supported here."
-  heroBanner = "/images/hero-banner.png"
+  heroEyebrow = "Engineering leadership · Security · FinOps"
+  heroHeadline = 'I write about <em>the organisational<br>texture</em> of running <span class="highlight">resilient</span> systems.'
+  heroStandfirst = "Security, infrastructure, and the small invisible decisions that decide whether a Tuesday is quiet — or the worst day of the quarter."
 
-  # Hero background position for mobile (adjusts which part of image is visible)
-  # Format: "X% Y%" - e.g., "center center", "60% center", "left top"
-  heroMobilePosition = "center center"
+  # Optional: hero banner image (overlays the hero section)
+  # heroBanner = "/images/hero-banner.jpg"
+  # heroMobilePosition = "center center"
 
   # ---------------------------------------------------------------------------
   # Content Display
   # ---------------------------------------------------------------------------
   # Featured tags shown in mobile tag bar (use tag slugs)
-  featuredTags = ["blog", "projects", "tutorials"]
+  featuredTags = ["platform", "finops", "security"]
 
   # Number of latest posts to show on homepage
-  latestPostsDesktop = 8   # Desktop view
+  latestPostsDesktop = 5   # Desktop view (1 large + N-1 small cards)
   latestPostsMobile = 3    # Mobile view
 
   # ---------------------------------------------------------------------------
   # Theme Customisation
   # ---------------------------------------------------------------------------
-  # Accent colour - used for links, buttons, and highlights
-  # Presets: cerulean (default), crimson, purple, teal, amber
-  # Or use a custom hex colour: "#FF5733"
-  accentColor = "cerulean"
+  # Accent colour — used for highlights, buttons, and interactive elements
+  # oklch presets: lime (default), amber, coral, sky
+  # Legacy hex presets: cerulean, crimson, purple, teal
+  # Or use a raw value: "oklch(0.85 0.14 140)" or "#FF5733"
+  accentColor = "lime"
 
-  # Background colour scheme (light mode only)
-  # Options: warm (cream/beige tint), cool (blue-gray tint), neutral (pure gray)
-  backgroundScheme = "cool"
+  # List page layout: "single-column" (default) or "two-column"
+  # Timeline spine is always shown on desktop
+  listLayout = "single-column"
 
 # ---------------------------------------------------------------------------
 # Hero Action Buttons
 # ---------------------------------------------------------------------------
-# Add up to 2-3 buttons below the hero tagline
 [[params.heroLinks]]
-  text = "Read Blog"
+  text = "Start here"
   url = "/posts/"
 [[params.heroLinks]]
-  text = "About Me"
-  url = "/about/"
+  text = "Browse all essays"
+  url = "/tags/"
 
 # ---------------------------------------------------------------------------
-# Social Links (shown in footer)
+# Subscribe CTA (shown in nav bar)
+# ---------------------------------------------------------------------------
+[params.subscribeCTA]
+  text = "Subscribe"
+  url = "/subscribe/"
+
+# ---------------------------------------------------------------------------
+# Social Links (shown in footer as text links)
 # ---------------------------------------------------------------------------
 [params.social]
   linkedin = "https://linkedin.com/in/yourprofile"
@@ -91,14 +104,7 @@ enableRobotsTXT = true
 # ---------------------------------------------------------------------------
 # Audio Player (Optional)
 # ---------------------------------------------------------------------------
-# Enable "Listen to Articles" feature with text-to-speech audio
 [params.audio]
-  # Base URL for audio files
-  # Local:         "/audio"
-  # CDN:           "https://cdn.yoursite.com/audio"
-  # Amazon S3:     "https://your-bucket.s3.amazonaws.com/audio"
-  # Azure Blob:    "https://youraccount.blob.core.windows.net/audio"
-  # Cloudflare R2: "https://your-bucket.r2.cloudflarestorage.com/audio"
   baseURL = "/audio"
 
 # ---------------------------------------------------------------------------
@@ -107,11 +113,9 @@ enableRobotsTXT = true
 # Analytics only loads in production (not during `hugo server`)
 [params.analytics]
   # GoatCounter - privacy-friendly analytics
-  # Sign up at https://goatcounter.com and enter your site code
   # goatcounter = "your-site-code"
 
   # Google Analytics (GA4)
-  # Enter your measurement ID (starts with G-)
   # google = "G-XXXXXXXXXX"
 
 # =============================================================================
@@ -119,17 +123,21 @@ enableRobotsTXT = true
 # =============================================================================
 [menu]
   [[menu.main]]
-    name = "Blog"
+    name = "Essays"
     url = "/posts/"
     weight = 1
   [[menu.main]]
-    name = "About"
-    url = "/about/"
+    name = "Now"
+    url = "/now/"
     weight = 2
   [[menu.main]]
-    name = "Contact"
-    url = "/contact/"
+    name = "Topics"
+    url = "/tags/"
     weight = 3
+  [[menu.main]]
+    name = "About"
+    url = "/about/"
+    weight = 4
 
 # =============================================================================
 # Outputs
@@ -154,4 +162,4 @@ enableRobotsTXT = true
     noClasses = false
   [markup.goldmark]
     [markup.goldmark.renderer]
-      unsafe = true  # Allow HTML in markdown
+      unsafe = true
