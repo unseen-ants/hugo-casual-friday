@@ -94,9 +94,9 @@
   {{ if gt (len $parentTags) 0 }}
   <div class="filter-bar">
     <span class="filter-label">Filter</span>
-    <button class="filter-pill active" data-tag="all">All</button>
+    <a class="filter-pill active" href="{{ .RelPermalink }}">All</a>
     {{ range first 8 $parentTags }}
-    <button class="filter-pill" data-tag="{{ . }}">{{ . | humanize | title }}</button>
+    <a class="filter-pill" href="{{ "tags/" | relURL }}{{ . }}/">{{ . | humanize | title }}</a>
     {{ end }}
   </div>
   {{ end }}

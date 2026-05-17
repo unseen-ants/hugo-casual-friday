@@ -3,8 +3,12 @@
 {{/* ── Post collections ── */}}
 {{ $featured := where .Site.RegularPages "Params.featured" true }}
 {{ $allPosts := where .Site.RegularPages "Section" "posts" }}
-{{ $notEng := where .Site.RegularPages "Section" "not_engineering" }}
-{{ $combined := sort ($allPosts | append $notEng) "Date" "desc" }}
+{{ $combined := $allPosts }}
+{{ range .Site.Params.homepageSections }}
+  {{ $extra := where $.Site.RegularPages "Section" . }}
+  {{ $combined = $combined | append $extra }}
+{{ end }}
+{{ $combined = sort $combined "Date" "desc" }}
 
 {{ $desktopCount := .Site.Params.latestPostsDesktop | default 5 }}
 {{ $mobileCount := .Site.Params.latestPostsMobile | default 3 }}

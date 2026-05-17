@@ -377,6 +377,7 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .nav-links a:hover,
 .nav-links a.active { color: var(--dark-text-1); }
+.nav-theme-btn,
 .nav-cta {
   font: var(--text-label-md);
   font-family: var(--font-mono);
@@ -392,6 +393,7 @@ img { max-width: 100%; height: auto; display: block; }
   white-space: nowrap;
   transition: all var(--transition-fast);
 }
+.nav-theme-btn:hover,
 .nav-cta:hover { color: var(--dark-text-1); border-color: rgba(244,239,228,0.4); }
 
 
@@ -1915,6 +1917,7 @@ a.tag-pill:hover { color: var(--text-1); border-color: rgba(24,20,16,0.35); }
 
   /* Nav → mobile */
   .nav-links { display: none; }
+  .nav-theme-btn { display: none; }
   .nav-cta { display: none; }
   .nav-mobile-right { display: flex; }
   .nav-pill { border-radius: var(--radius-lg); }

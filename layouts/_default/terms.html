@@ -19,6 +19,10 @@
     {{ $parentTags = $parentTags | append . }}
   {{ end }}
 {{ end }}
+{{ $processedParents := slice }}
+{{ range $parentTags }}
+  {{ $processedParents = $processedParents | append .Name }}
+{{ end }}
 
 
 <div class="terms-wrap">
@@ -65,10 +69,6 @@
     {{ end }}
 
     {{/* Orphan children (parent slug exists in children map but has no parent page) */}}
-    {{ $processedParents := slice }}
-    {{ range $parentTags }}
-      {{ $processedParents = $processedParents | append .Name }}
-    {{ end }}
     {{ range $parentSlug, $children := $childTagsByParent }}
       {{ if not (in $processedParents $parentSlug) }}
         {{ $allPosts := slice }}
@@ -114,15 +114,15 @@
 
       {{ if gt $totalPosts 0 }}
       <div class="terms-accordion-item">
-        <button class="terms-accordion-header" aria-expanded="{{ if eq $i 0 }}true{{ else }}false{{ end }}">
-          <a href="{{ .Permalink }}" class="terms-accordion-title" onclick="event.stopPropagation()">{{ .Title }}</a>
+        <div class="terms-accordion-header">
+          <a href="{{ .Permalink }}" class="terms-accordion-title">{{ .Title }}</a>
           <span class="terms-accordion-count">{{ $totalPosts }}</span>
           {{ if $children }}
-          <span class="terms-accordion-toggle">
+          <button class="terms-accordion-toggle" aria-expanded="{{ if eq $i 0 }}true{{ else }}false{{ end }}" aria-label="Toggle subtopics">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </span>
+          </button>
           {{ end }}
-        </button>
+        </div>
         {{ if $children }}
         <div class="terms-accordion-body{{ if eq $i 0 }} open{{ end }}">
           <div class="topic-subtags" style="padding:0 0 var(--gap-lg);">
@@ -136,6 +136,39 @@
         </div>
         {{ end }}
       </div>
+      {{ end }}
+    {{ end }}
+
+    {{ range $parentSlug, $children := $childTagsByParent }}
+      {{ if not (in $processedParents $parentSlug) }}
+        {{ $allPosts := slice }}
+        {{ range $children }}
+          {{ range .Pages }}
+            {{ $allPosts = $allPosts | append . }}
+          {{ end }}
+        {{ end }}
+        {{ $totalPosts := len ($allPosts | uniq) }}
+        {{ if gt $totalPosts 0 }}
+      <div class="terms-accordion-item">
+        <button class="terms-accordion-header" aria-expanded="false">
+          <span class="terms-accordion-title">{{ $parentSlug | humanize | title }}</span>
+          <span class="terms-accordion-count">{{ $totalPosts }}</span>
+          <span class="terms-accordion-toggle">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </span>
+        </button>
+        <div class="terms-accordion-body">
+          <div class="topic-subtags" style="padding:0 0 var(--gap-lg);">
+            {{ range $children }}
+            <a href="{{ .Permalink }}" class="subtag">
+              {{ .Name | humanize | title }}
+              <span class="subtag-count">{{ len .Pages }}</span>
+            </a>
+            {{ end }}
+          </div>
+        </div>
+      </div>
+        {{ end }}
       {{ end }}
     {{ end }}
   </div>

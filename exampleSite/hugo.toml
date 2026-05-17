@@ -63,6 +63,9 @@ enableRobotsTXT = true
   latestPostsDesktop = 5   # Desktop view (1 large + N-1 small cards)
   latestPostsMobile = 3    # Mobile view
 
+  # Additional content sections to merge into the homepage feed alongside "posts"
+  # homepageSections = ["notes", "essays"]
+
   # ---------------------------------------------------------------------------
   # Theme Customisation
   # ---------------------------------------------------------------------------

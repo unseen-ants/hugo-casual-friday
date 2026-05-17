@@ -34,25 +34,29 @@
 })();
 
 // =============================================================================
-// Theme Toggle (uses window.avijitTheme from head.html)
+// Theme Toggle (uses window.cfTheme from head.html)
 // =============================================================================
 (function() {
   var GLYPHS = { auto: '◐ Auto', light: '☀ Light', dark: '☾ Dark' };
-  var btn = document.getElementById('theme-toggle');
-  if (!btn || !window.avijitTheme) return;
+  var buttons = document.querySelectorAll('[data-theme-toggle]');
+  if (!buttons.length || !window.cfTheme) return;
 
   function updateLabel(mode) {
-    btn.textContent = GLYPHS[mode] || GLYPHS.auto;
+    buttons.forEach(function(btn) {
+      btn.textContent = GLYPHS[mode] || GLYPHS.auto;
+    });
   }
 
-  updateLabel(window.avijitTheme.get());
+  updateLabel(window.cfTheme.get());
 
-  btn.addEventListener('click', function() {
-    var next = window.avijitTheme.cycle();
-    updateLabel(next);
+  buttons.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var next = window.cfTheme.cycle();
+      updateLabel(next);
+    });
   });
 
-  window.avijitTheme.onChange(function(detail) {
+  window.cfTheme.onChange(function(detail) {
     updateLabel(detail.mode);
   });
 })();
@@ -159,34 +163,6 @@
       });
       document.querySelectorAll('.panel-view').forEach(function(v) {
         v.classList.toggle('active', v.getAttribute('data-panel') === target);
-      });
-    });
-  });
-})();
-
-// =============================================================================
-// List Page Filter Bar
-// =============================================================================
-(function() {
-  var pills = document.querySelectorAll('.filter-pill');
-  if (!pills.length) return;
-
-  pills.forEach(function(pill) {
-    pill.addEventListener('click', function() {
-      var tag = pill.getAttribute('data-tag');
-
-      // Update active state
-      pills.forEach(function(p) { p.classList.remove('active'); });
-      pill.classList.add('active');
-
-      // Filter timeline items
-      document.querySelectorAll('.timeline-item').forEach(function(item) {
-        if (!tag || tag === 'all') {
-          item.style.display = '';
-        } else {
-          var tags = item.getAttribute('data-tags') || '';
-          item.style.display = tags.toLowerCase().indexOf(tag.toLowerCase()) !== -1 ? '' : 'none';
-        }
       });
     });
   });
@@ -394,11 +370,12 @@
 // Terms Accordion (mobile)
 // =============================================================================
 (function() {
-  document.querySelectorAll('.terms-accordion-header').forEach(function(header) {
-    header.addEventListener('click', function() {
-      var expanded = header.getAttribute('aria-expanded') === 'true';
-      header.setAttribute('aria-expanded', !expanded);
-      var body = header.nextElementSibling;
+  document.querySelectorAll('.terms-accordion-toggle').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!expanded));
+      var item = btn.closest('.terms-accordion-item');
+      var body = item && item.querySelector('.terms-accordion-body');
       if (body) body.classList.toggle('open');
     });
   });

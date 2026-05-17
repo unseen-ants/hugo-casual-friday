@@ -20,6 +20,8 @@
       {{- end }}
     </ul>
 
+    <button class="nav-theme-btn" type="button" data-theme-toggle>◐ Auto</button>
+
     {{/* Desktop subscribe CTA */}}
     {{ with .Site.Params.subscribeCTA }}
     <a href="{{ .url }}" class="nav-cta">{{ .text | default "Subscribe" }}</a>
@@ -41,7 +43,7 @@
       <div class="dd-divider"></div>
       <div class="dd-theme">
         <span class="dd-theme-label">Theme</span>
-        <button class="dd-theme-btn" id="theme-toggle">◐ Auto</button>
+        <button class="dd-theme-btn" type="button" data-theme-toggle>◐ Auto</button>
       </div>
       <div class="dd-divider"></div>
       {{ with .Site.Params.subscribeCTA }}
