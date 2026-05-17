@@ -46,12 +46,8 @@ enableRobotsTXT = true
   # Hero Section (Homepage)
   # ---------------------------------------------------------------------------
   heroEyebrow = "Engineering leadership · Security · FinOps"
-  heroHeadline = 'I write about <em>the organisational<br>texture</em> of running <span class="highlight">resilient</span> systems.'
+  heroHeadline = "I write about the organisational texture of running ==resilient== systems."
   heroStandfirst = "Security, infrastructure, and the small invisible decisions that decide whether a Tuesday is quiet — or the worst day of the quarter."
-
-  # Optional: hero banner image (overlays the hero section)
-  # heroBanner = "/images/hero-banner.jpg"
-  # heroMobilePosition = "center center"
 
   # ---------------------------------------------------------------------------
   # Content Display

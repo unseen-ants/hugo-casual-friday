@@ -34,13 +34,12 @@
 
 
 {{/* ── Hero ── */}}
-{{ $heroBanner := .Site.Params.heroBanner }}
-<section class="hero{{ with $heroBanner }} hero--has-banner{{ end }}"{{ with $heroBanner }} style="background-image:url('{{ . }}')"{{ end }}>
+<section class="hero">
   <div>
     {{ with .Site.Params.heroEyebrow }}
     <div class="hero-eyebrow">{{ . }}</div>
     {{ end }}
-    <h1 class="hero-h1">{{ .Site.Params.heroHeadline | safeHTML }}</h1>
+    <h1 class="hero-h1">{{ .Site.Params.heroHeadline | replaceRE `==(.+?)==` `<span class="highlight">$1</span>` | safeHTML }}</h1>
     {{ with .Site.Params.heroStandfirst }}
     <p class="hero-standfirst">{{ . }}</p>
     {{ end }}
