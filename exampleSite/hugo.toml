@@ -71,6 +71,11 @@ enableRobotsTXT = true
   # Or use a raw value: "oklch(0.85 0.14 140)" or "#FF5733"
   accentColor = "lime"
 
+  # Page background colour — overrides the default warm parchment (#f4efe4)
+  # Accepts any valid CSS colour: hex, oklch, rgb, etc.
+  # Leave unset to use the default. Cards/surfaces retain their own colour.
+  # backgroundColor = "#e8e0d0"
+
   # List page layout: "single-column" (default) or "two-column"
   # Timeline spine is always shown on desktop
   listLayout = "single-column"

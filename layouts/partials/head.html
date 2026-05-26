@@ -242,6 +242,15 @@
 </style>
 {{ end }}
 
+<!-- Background Color Override (from hugo.toml) -->
+{{ with site.Params.backgroundColor }}
+<style>
+  :root {
+    --bg: {{ . }};
+  }
+</style>
+{{ end }}
+
 {{/* ==========================================================================
     RSS & Feeds
     ========================================================================== */}}
